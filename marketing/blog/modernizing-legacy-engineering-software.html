@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modernizing legacy engineering software: why big rewrites fail — nativegate</title>
+  <meta name="description" content="Legacy engineering software outlives rewrites because validation is the asset. A field guide to modernization strategies that respect that: strangler-pattern wrapping, interface-first replacement, and numerical regression assurance.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/modernizing-legacy-engineering-software.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Modernizing legacy engineering software: why big rewrites fail">
+  <meta property="og:description" content="Why rewrites fail, and the strategies that respect what a legacy engineering codebase actually is: validated.">
+  <meta property="og:url" content="https://nativegate.dev/blog/modernizing-legacy-engineering-software.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Modernizing legacy engineering software: why big rewrites fail">
+  <meta name="twitter:description" content="Why rewrites fail, and what a strategy that respects validation looks like.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Modernizing legacy engineering software: why big rewrites fail",
+    "datePublished": "2026-09-30",
+    "dateModified": "2026-09-30",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/modernizing-legacy-engineering-software.html",
+    "description": "Why rewrites fail, and what a strategy that respects validation looks like."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Modernizing legacy engineering software: why big rewrites fail</h1>
+        <p class="post-byline">Published <time datetime="2026-09-30">2026-09-30</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Every engineering organization seems to have one: a Fortran or C++
+            program older than most of its users, that nobody wants to touch
+            and everybody depends on. The recurring proposal is a rewrite. The
+            recurring outcome is a rewrite that stalls, because halfway
+            through, the team discovers that the legacy code is not obsolete —
+            it is <em>validated</em>, and its validated behavior is documented
+            nowhere except in the code itself. This post is a field guide to
+            strategies that acknowledge that fact from day one.
+          </p>
+
+          <h2>Why rewrites fail</h2>
+          <p>
+            Engineering code accumulates three kinds of invisible content:
+          </p>
+          <ul>
+            <li><strong>Discipline decisions.</strong> A units conversion here, a convergence guard there, an occasional factor-of-two embedded in a correlation. None is labeled; all are load-bearing.</li>
+            <li><strong>Decades of bug fixes.</strong> Every defect that was found and fixed is embodied behavior a rewrite will re-discover the hard way.</li>
+            <li><strong>Interpretation of specs that no longer exist.</strong> The formulation the code implements is often more current than the paper describing it.</li>
+          </ul>
+          <p>
+            A rewrite transfers all of that content by hand, under time
+            pressure, with no oracle to compare against — because the first
+            version of a rewrite has nothing to compare against except the
+            code it replaces, and if anyone actually builds that comparison,
+            they've reinvented the smarter strategy: keep the original, wrap
+            it, and verify.
+          </p>
+
+          <h2>The strategy that does work: interface-first</h2>
+          <p>
+            Keep the numerics compiled and untouched. Change what's around
+            them, in an order that produces value at every rung:
+          </p>
+          <ol>
+            <li><strong>Import.</strong> Bind the highest-value routines into a Python package. Value appears the first time someone calls the model from a script instead of editing an input file.</li>
+            <li><strong>Serve.</strong> When a second consumer appears, expose the same surface over HTTP. Same code, wider audience.</li>
+            <li><strong>Contain.</strong> Put the service in a container so deployment stops being tribal knowledge.</li>
+            <li><strong>Verify.</strong> Around everything, from the first week: a recorded numerical baseline that every change is measured against.</li>
+          </ol>
+          <p>
+            Each rung is useful alone. None requires abandoning the others.
+            And the original program keeps running while all of it happens —
+            there is no day where the new system must be switched over,
+            because nothing was replaced; interfaces accumulated around it.
+          </p>
+
+          <h2>Numerical regression assurance</h2>
+          <p>
+            The rung most organizations skip, and the one that makes the rest
+            safe, is the baseline. Record the outputs of known configurations
+            before the first change; fail any future change that moves them.
+            nativegate calls this the golden record. It answers "did the
+            answers move?" in seconds, forever, and it is the difference
+            between "we changed the build system" being a prayer and being a
+            checked claim.
+          </p>
+
+          <h2>A realistic scorecard</h2>
+          <p>
+            What a tool-assisted version of this strategy does not do: it does
+            not make the code readable, does not convert it to another
+            language, and does not make a stateful Fortran model safely
+            multi-tenant. It does make the code <em>reachable</em> — by your
+            scripting languages, your web stack, your CI — without touching
+            the numerics, and it makes every future change provably
+            answer-preserving. For validated engineering software, that is
+            most of the value and almost none of the risk.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">Try it on your codebase &rarr;</a>
+          <a class="btn" href="modernize-legacy-fortran.html">Related: modernizing legacy Fortran</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

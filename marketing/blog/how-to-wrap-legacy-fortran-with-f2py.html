@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to wrap legacy Fortran with F2PY (a practical walkthrough) — nativegate</title>
+  <meta name="description" content="A practical walkthrough of wrapping legacy Fortran with F2PY: the happy path, the legacy-deck path, the failure modes to expect, and what remains to build after the extension module compiles.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How to wrap legacy Fortran with F2PY">
+  <meta property="og:description" content="A practical walkthrough: the happy path, the legacy-deck path, and what remains to build after the extension module compiles.">
+  <meta property="og:url" content="https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="How to wrap legacy Fortran with F2PY">
+  <meta name="twitter:description" content="A practical walkthrough, with the legacy-deck failure modes to expect.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to wrap legacy Fortran with F2PY",
+    "datePublished": "2026-10-14",
+    "dateModified": "2026-10-14",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html",
+    "description": "A practical walkthrough: the happy path, the legacy-deck path, and what remains to build afterwards."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">How to wrap legacy Fortran with F2PY</h1>
+        <p class="post-byline">Published <time datetime="2026-10-14">2026-10-14</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            If you're wrapping Fortran with f2py by hand — a reasonable
+            decision, as established in our evaluations — this walkthrough
+            covers the actual sequence for legacy code specifically, where
+            the problems live. For a library you'd write today (free-form,
+            module-based, explicit intents), the f2py documentation's own
+            quickstart is better than anything we could paraphrase. This
+            post is about machines that predate those assumptions.
+          </p>
+
+          <h2>Step 0: scope what you're wrapping</h2>
+          <p>
+            On a multi-hundred-deck legacy model, wrap <em>a chosen
+            surface</em>: the routines a caller would actually want, and
+            everything they transitively call. Establish that list before
+            generating a single signature line.
+          </p>
+
+          <h2>Step 1: reconcile the source the compiler will see</h2>
+          <p>
+            Fixed-form F77 decks are typically composed with INCLUDE
+            statements and macros, so the file f2py parses is not the file
+            the compiler compiles. Expand the INCLUDEs into a generated copy
+            (never edit originals), resolve parameterized kind aliases
+            (<code>real(dp)</code> with a local <code>integer, parameter ::
+            dp</code> will otherwise fail f2py's wrapper in ways gfortran
+            reports far from the cause), and strip column-1 comment
+            conventions your shop added.
+          </p>
+
+          <h2>Step 2: decide directions you can't infer safely</h2>
+          <p>
+            Old code rarely declares intent. For each argument of each
+            exposed routine, decide: input-only, output-only, or in-place?
+            Record that decision either as f2py directives in the source
+            copy, or in a side manifest if you want the source untouched.
+            The silent-integer-string case is the classic: an assumed-length
+            <code>CHARACTER*(*)</code> argument can fall through to implicit
+            integer typing and bind as an int — a binding that compiles and
+            then hands a pointer where a string descriptor is expected.
+          </p>
+
+          <h2>Step 3: generate and build</h2>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">f2py on the expanded copy</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">f2py -c _expanded/model.f90 -m model</span></div>
+          </div>
+          <p>
+            Expect the build to name errors far from their causes when
+            something in step 1 was wrong — the resolution is almost always
+            back in the expansion, not the generated wrapper.
+          </p>
+
+          <h2>Step 4: test against known answers, immediately</h2>
+          <p>
+            As soon as the module imports, capture the outputs of known
+            configurations and commit them. Every change after this —
+            regenerating the wrapper, upgrading gfortran, changing flags —
+            is measured against that baseline. Without it, step 5 is
+            unfalsifiable.
+          </p>
+
+          <h2>Step 5: everything downstream</h2>
+          <p>
+            Packaging (scikit-build-core, wheel locks, CI builds),
+            concurrency policy for COMMON-block state, and — if other teams
+            will consume the model — HTTP service, container, manifests.
+            Those are real weeks on your calendar, and they're the part
+            nativegate generates so that days 2–30 don't repeat day 1.
+          </p>
+          <p>
+            The walkthrough makes the honest point explicitly: wrapping via
+            f2py is a fine one-time exercise. The modernization is the work
+            after the module compiles; generating that work is the tool.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="nativegate-vs-f2py.html">Where nativegate fits &rarr;</a>
+          <a class="btn" href="https://github.com/ravikings/nativegate#readme">View on GitHub</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

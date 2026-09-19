@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fortran 77 to Python: what actually changes — nativegate</title>
+  <meta name="description" content="What genuinely changes when a 1980s fixed-form F77 codebase becomes reachable from Python, and what deliberately doesn't: a concrete tour of fixed-form syntax, implicit typing, COMMON state, INTEGER*4 conventions, and modernized interfaces.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/fortran-77-to-python.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Fortran 77 to Python: what actually changes">
+  <meta property="og:description" content="What actually changes when F77 becomes reachable from Python, and what deliberately doesn't.">
+  <meta property="og:url" content="https://nativegate.dev/blog/fortran-77-to-python.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Fortran 77 to Python: what actually changes">
+  <meta name="twitter:description" content="What actually changes — and what deliberately doesn't.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Fortran 77 to Python: what actually changes",
+    "datePublished": "2026-10-18",
+    "dateModified": "2026-10-18",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/fortran-77-to-python.html",
+    "description": "What actually changes when F77 becomes reachable from Python, and what deliberately doesn't."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Fortran 77 to Python: what actually changes</h1>
+        <p class="post-byline">Published <time datetime="2026-10-18">2026-10-18</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            People ask about "F77 to Python" expecting a code
+            transformation. The honest answer: the transformation worth
+            making is not of the source but of everything around it. This
+            post walks the dialect itself through a modern interface, and
+            shows what changes and what deliberately does not, using
+            canonical F77 constructs.
+          </p>
+
+          <h2>Fixed-form columns: parsed away, never imposed on Python</h2>
+          <p>
+            F77 lives in columns 1–72; continuation lives in column 6. The
+            old parse has to juggle continuation-line joining and
+            column-1 comments; the Python caller never sees any of this.
+            The binding's generated code handles the dialect; the
+            interface you call is irrelevant to column discipline.
+          </p>
+
+          <h2>Implicit typing: decided once, not per call</h2>
+          <p>
+            Variables typed by IMPLICIT rules (I-N is INTEGER, else
+            REAL) and <code>DOUBLE PRECISION FUNCTION</code> returns are
+            exactly where naive binding patterns skip routines — our
+            worked example's first discovery pass missed 24 of 49
+            routines including nine <code>DOUBLE PRECISION</code>
+            functions. In the modernized surface, each routine's signature
+            carries resolved types: the ambiguity is handled at generation
+            time, in one place, under tests — not in each caller's head.
+          </p>
+
+          <h2>COMMON blocks: invisible to Python, visible to the contract</h2>
+          <p>
+            Python never sees COMMON blocks directly, which is the point.
+            What the API contract exposes instead is their consequence:
+            the routines are stateful, so the interface constrains how
+            calls may interleave. A generated Fortran service holds one
+            native call at a time per process. In exported Python land,
+            the same rule is documentation: one session, sequential, or
+            drift will find you.
+          </p>
+
+          <h2>Arrays: Python does the typing, Fortran keeps the memory</h2>
+          <p>
+            What flows is a NumPy view of original memory where feasible.
+            The Python caller writes <code>x = np.array([1.0, 2.0])</code>
+            and the old <code>REAL*8 X(10)</code> convention behind it is
+            reconciled in the generated wrapper. What doesn't change: the
+            loan of memory, and the fact that the documented extents live
+            in the deck rather than the type system.
+          </p>
+
+          <h2>What does not change — deliberately</h2>
+          <ul>
+            <li>The numerics: the same compiled units, the same answers, checked against a committed baseline.</li>
+            <li>The stateful, seat-per-process concurrency character.</li>
+            <li>The build dependency: a compiler is still in the production image.</li>
+          </ul>
+          <p>
+            "F77 to Python" done well is honest about this list: the
+            language transition happens at the boundary only, and the
+            promise that survives is numerical sameness with interface
+            modernity.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="how-to-wrap-legacy-fortran-with-f2py.html">Wrap one the direct way &rarr;</a>
+          <a class="btn" href="modernize-legacy-fortran.html">The long version</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

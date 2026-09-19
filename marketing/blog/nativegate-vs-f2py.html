@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F2PY vs nativegate: which should you use? — nativegate</title>
+  <meta name="description" content="F2PY is NumPy's Fortran-to-Python tool and remains the right choice for many jobs. An honest comparison: what F2PY solves, where its scope stops, and when a full modernization workflow earns its place.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/nativegate-vs-f2py.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="F2PY vs nativegate: which should you use?">
+  <meta property="og:description" content="F2PY is NumPy's Fortran-to-Python tool and remains the right choice for many jobs. An honest comparison of scope, not a contest.">
+  <meta property="og:url" content="https://nativegate.dev/blog/nativegate-vs-f2py.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="F2PY vs nativegate: which should you use?">
+  <meta name="twitter:description" content="An honest comparison of scope, not a contest.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "F2PY vs nativegate: which should you use?",
+    "datePublished": "2026-09-14",
+    "dateModified": "2026-09-14",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/nativegate-vs-f2py.html",
+    "description": "F2PY is NumPy's Fortran-to-Python tool and remains the right choice for many jobs. An honest comparison of scope, not a contest."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Comparisons</div>
+        <h1 class="post-title">F2PY vs nativegate: which should you use?</h1>
+        <p class="post-byline">Published <time datetime="2026-09-14">2026-09-14</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            First, the honest framing: F2PY is not a competitor to beat, it's
+            NumPy's own tool for connecting Fortran and Python, it's been
+            maintained for over two decades, and nativegate
+            <em>uses f2py under the hood</em> to emit its Fortran bindings. If
+            you leave this page thinking "F2PY is bad," you misread it. The
+            question is which <em>scope</em> of problem you have.
+          </p>
+
+          <h2>What each tool is for</h2>
+          <p>
+            F2PY's documented purpose is connecting Fortran and Python and
+            generating extension modules: <code>f2py -c mymodule.f90 -m mymod</code>,
+            and you have a Python-callable module. It does that well, including
+            a <code>numpy.f2py</code> module you can call programmatically, and despite
+            its age it keeps pace with NumPy releases.
+          </p>
+          <p>
+            nativegate's scope starts where the bindings stop. Bindings are one
+            of eight artifacts it generates from a single configuration; the
+            others are the build system, the Python package, tests, the
+            numerical baseline, a FastAPI service, Docker, and Kubernetes
+            manifests. Its premise is that a legacy codebase owner doesn't want
+            bindings per se — they want the modernization outcome.
+          </p>
+
+          <h2>Side by side</h2>
+          <table>
+            <tr><th>Capability</th><th>F2PY</th><th>nativegate</th></tr>
+            <tr><td>Fortran &rarr; Python bindings</td><td>&check;</td><td>&check; (via f2py)</td></tr>
+            <tr><td>Stable, maintained, huge track record</td><td>&check;</td><td></td></tr>
+            <tr><td>Free-form and fixed-form parsing</td><td>&check;</td><td>&check;</td></tr>
+            <tr><td>Derived types (with f90wrap, or natively in newer toolchains)</td><td>&check;</td><td>narrow support</td></tr>
+            <tr><td>COMMON-block state handled in the API contract</td><td>your job</td><td>&check;</td></tr>
+            <tr><td>Installable wheel + CMake build generated</td><td>your job</td><td>&check;</td></tr>
+            <tr><td>Generated pytest suite</td><td>your job</td><td>&check;</td></tr>
+            <tr><td>Numerical golden-record regression checks</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>FastAPI service generation</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>Docker image + Kubernetes manifests</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>Works on C++ too (pybind11)</td><td>&mdash;</td><td>&check;</td></tr>
+          </table>
+          <p>
+            "Your job" is doing some work on that capability — not that it
+            can't be done, just that it doesn't come from the tool. If your
+            project is one well-understood module and a build system you already
+            trust, those extra rows are irrelevant and F2PY is the right tool.
+          </p>
+
+          <h2>When F2PY is the better choice</h2>
+          <ul>
+            <li>You need one or a few routines, and your build/packaging already exists.</li>
+            <li>You need to hand-tune wrapper behavior argument by argument — f2py's directives give you that control.</li>
+            <li>You want the outcome immediately, no opinionated pipeline in between. F2PY is an interface; nativegate is a workflow.</li>
+          </ul>
+
+          <h2>When the workflow earns its place</h2>
+          <ul>
+            <li>The artifact that matters is a service, not a .so file: the model must be reachable over HTTP by other teams.</li>
+            <li>The codebase is a legacy deck where intent is inferred, state is COMMON, and a <code>verify</code> answer to "did the numbers move?" needs to exist.</li>
+            <li>Both exist in the same organization: C++ and Fortran, handled by one pipeline instead of two.</li>
+          </ul>
+
+          <h2>The combination answer</h2>
+          <p>
+            The most useful mental model isn't either/or. If you know how to
+            run f2py but nothing else ever materializes around the module, you
+            have satisfied F2PY's scope and stopped there. If the pipeline
+            around it is the thing you never get to, nativegate exists to fill
+            exactly that hole — and it delegates the f2py part to f2py, which
+            knows it better than we do.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">See the worked example &rarr;</a>
+          <a class="btn" href="./nativegate-vs-f90wrap.html">Also see: f90wrap vs nativegate</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

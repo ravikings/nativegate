@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legacy scientific software modernization: a practical guide — nativegate</title>
+  <meta name="description" content="How organizations actually modernize legacy scientific software — physics libraries, simulation codes, numerical models — without rewriting the math: interface-first exposure, packaging, deployment, and numerical regression checks.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/legacy-scientific-software-modernization.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Legacy scientific software modernization: a practical guide">
+  <meta property="og:description" content="How organizations actually modernize legacy scientific software without rewriting the math.">
+  <meta property="og:url" content="https://nativegate.dev/blog/legacy-scientific-software-modernization.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Legacy scientific software modernization: a practical guide">
+  <meta name="twitter:description" content="How organizations actually modernize legacy scientific software without rewriting the math.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Legacy scientific software modernization: a practical guide",
+    "datePublished": "2026-10-07",
+    "dateModified": "2026-10-07",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/legacy-scientific-software-modernization.html",
+    "description": "How organizations actually modernize legacy scientific software without rewriting the math."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Legacy scientific software modernization: a practical guide</h1>
+        <p class="post-byline">Published <time datetime="2026-10-07">2026-10-07</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Physics libraries, climate models, geophysical solvers, transport
+            codes, lab-ware analyzers — scientific software written between
+            1980 and 2010 still runs because it still produces the right
+            numbers. This guide is about the practical shape of modernizing
+            such software: what to touch, what never to touch, and where
+            organizations routinely lose years.
+          </p>
+
+          <h2>Frame it as three inventories</h2>
+          <p>
+            Before choosing a strategy, count three things:
+          </p>
+          <ol>
+            <li><strong>What has to keep running.</strong> Batch runs a production process depends on. These freeze; your first classroom of work grows around them.</li>
+            <li><strong>What people actually call.</strong> The ten to fifty routines that encode today's workflow, buried inside a main program that does a hundred other things.</li>
+            <li><strong>What the answers should be.</strong> Known configurations with known outputs. This becomes your numerical baseline — and without it no modernization is verifiable.</li>
+          </ol>
+
+          <h2>The strategy that does not burn the asset</h2>
+          <p>
+            Interface-first: keep the numerics compiled and untouched, and
+            expose a chosen surface of them through modern interfaces —
+            Python bindings first, then an HTTP service if the audience
+            needs one, then a container when deployment stops being
+            tribal knowledge. Every rung delivers value independently; the
+            original program never stops working.
+          </p>
+          <p>
+            The acceptance criterion at every step is the same numerical
+            question: does it still return <em>the same</em> answers? A
+            recorded baseline makes that a checkbox; the absence of one makes
+            it a research program.
+          </p>
+
+          <h2>What this looks like with tooling</h2>
+          <p>
+            nativegate generates the whole interface-first path from one
+            configuration: f2py/pybind11 bindings, the CMake build, an
+            installable wheel, pytest, a FastAPI service, a Dockerfile, and
+            the golden-record regression harness. It refuses, with a stated
+            reason, anything the source makes ambiguous — and on genuinely
+            messy legacy dialects (fixed-form F77, INCLUDE decks,
+            COMMON-block state) that refusals-versus-guesses distinction is
+            where the real effort goes.
+          </p>
+
+          <h2>Classic traps, named</h2>
+          <ul>
+            <li>            <strong>Equating conversion with modernization.</strong> Translating Fortran to readable Python loses the validation story and adds a new codebase to maintain. Interfacing keeps the validated bit validated.</li>
+            <li><strong>Binding everything by default.</strong> A 49-routine deck becomes a worse SDK than the ten routines a caller needs. Expose a chosen surface; leave the rest reachable through it.</li>
+            <li><strong>Ignoring global state until concurrency</strong>. COMMON blocks and static globals make any multi-caller design a correctness question first. Answer it in the design, not the incident.</li>
+            <li><strong>Fragmenting languages.</strong> Scientific shops carry both C++ and Fortran. A pipeline that handles both ethically keeps the team's story coherent.</li>
+          </ul>
+
+          <h2>A first week that produces value</h2>
+          <p>
+            Inventory, then one golden baseline on one configuration, then
+            one routine bound, verified, imported in CI. If that closed
+            loop works on your hardest routine, scaling it is mechanical —
+            and if it doesn't, you've spent a week to learn that your
+            modernization problem needs preparation before tooling, which
+            is also worth knowing.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">Try it on your codebase &rarr;</a>
+          <a class="btn" href="modernizing-legacy-engineering-software.html">Related: why big rewrites fail</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

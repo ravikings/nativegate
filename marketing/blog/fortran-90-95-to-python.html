@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fortran 90/95 to Python: practical considerations — nativegate</title>
+  <meta name="description" content="Fortran 90/95 is easier to bind than F77 — modules, INTENT, derived types — but each modern feature carries a practical consideration when exposed to Python: module naming, assumed-shape arrays, KIND parameters, and interface blocks.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/fortran-90-95-to-python.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Fortran 90/95 to Python: practical considerations">
+  <meta property="og:description" content="F90/95 is easier to bind than F77, but each modern feature carries a practical consideration when exposed to Python.">
+  <meta property="og:url" content="https://nativegate.dev/blog/fortran-90-95-to-python.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Fortran 90/95 to Python: practical considerations">
+  <meta name="twitter:description" content="Easier to bind than F77 — but each feature carries a consideration.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Fortran 90/95 to Python: practical considerations",
+    "datePublished": "2026-10-20",
+    "dateModified": "2026-10-20",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/fortran-90-95-to-python.html",
+    "description": "F90/95 is easier to bind than F77 — but each feature carries a practical consideration when exposed to Python."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Fortran 90/95 to Python: practical considerations</h1>
+        <p class="post-byline">Published <time datetime="2026-10-20">2026-10-20</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Fortran 90/95 is a different binding problem from F77: modules,
+            INTENT declarations, derived types, KIND parameters. That's
+            mostly good news — the code says more about itself — but each
+            modern feature carries a practical consideration when a Python
+            caller is on the other side. This post walks them.
+          </p>
+
+          <h2>Modules become scopes — decide what that means</h2>
+          <p>
+            f2py maps module procedures into nested module structures; there
+            have historically been wrinkles in how generations of f2py
+            handled that nesting, and working libraries around it is a real
+            pattern. The practical question for an interface: is the Python
+            surface <code>module.routine()</code> or a flat list? Decide it
+            early — downstream imports absorb whatever you choose, but not
+            whatever you re-decide later.
+          </p>
+
+          <h2>KIND is code, not annotation</h2>
+          <p>
+            <code>real(dp)</code> where <code>dp</code> is a module
+            <code>PARAMETER</code> is the standard correct spelling in
+            Fortran and a hazard in wrapper generation: the parameter has
+            to make it into every intermediate the wrapper reads, or the
+            argument degrades to a different real width and the build dies
+            later in a mismatch that names neither dp nor the argument.
+            nativegate resolves parameterized kinds to literals on a
+            generated copy for exactly this reason. If you're generating
+            by hand, plan for it.
+          </p>
+
+          <h2>Derived types: the feature f90wrap handles best</h2>
+          <p>
+            Derived types are where F90 gets genuinely object-shaped, and
+            where tool support matters most. f90wrap wraps type-bound
+            procedures across into Python classes; nativegate today takes
+            derived types in a narrower case (all-scalar components, type
+            defined in the same file, module-contained, free-form source)
+            and refuses those outside that envelope with a stated reason.
+            Mass wanted types → wider-than-us: use the tool built for it
+            (f90wrap). Both roads honor the same rule: unsupported isn't
+            guessed; unsupported is refused.
+          </p>
+
+          <h2>Assumed-shape and array arguments</h2>
+          <p>
+            Explicit-shape arrays compile into workable signatures;
+            assumed-shape ones need an explicit interface available at
+            bind time — a fact that is convenient from Fortran and a
+            wrinkle from tooling that predates the calling convention.
+            This is one of the honest variance points between generators;
+            test the actual call round-trip before trusting a signature.
+          </p>
+
+          <h2>The F90 checklist, condensed</h2>
+          <ul>
+            <li>Free-form source: fine — parses cleanly everywhere.</li>
+            <li>Module structure: decide your Python surface shape once.</li>
+            <li>KIND parameters: resolve them into the generated copy.</li>
+            <li>Derived types: f90wrap best-in-class; document your envelope.</li>
+            <li>INTENT: now written down — use it, and generate can infer.</li>
+          </ul>
+          <p>
+            The general F90 note, then: easier than F77 in every
+            dimension except the ones your code spans. Choose tools per
+            construct, keep the numeric baseline from day one, and the
+            modernization rides on the same rails as the F77 case.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="nativegate-vs-f90wrap.html">f90wrap vs nativegate &rarr;</a>
+          <a class="btn" href="fortran-77-to-python.html">Related: Fortran 77 to Python</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

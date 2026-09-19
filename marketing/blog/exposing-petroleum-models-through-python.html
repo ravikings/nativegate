@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exposing petroleum engineering models through Python — nativegate</title>
+  <meta name="description" content="How petroleum engineering models — PVT correlations, well indices, black-oil properties — become callable Python functions and HTTP endpoints without rewriting the validated Fortran, plus the engineering realities that shape the API.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/exposing-petroleum-models-through-python.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Exposing petroleum engineering models through Python">
+  <meta property="og:description" content="PVT correlations, well indices and black-oil properties as callable Python functions and HTTP endpoints.">
+  <meta property="og:url" content="https://nativegate.dev/blog/exposing-petroleum-models-through-python.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Exposing petroleum engineering models through Python">
+  <meta name="twitter:description" content="Without rewriting the validated Fortran.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Exposing petroleum engineering models through Python",
+    "datePublished": "2026-10-28",
+    "dateModified": "2026-10-28",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/exposing-petroleum-models-through-python.html",
+    "description": "How PVT correlations and well-property models become callable Python and HTTP without rewriting the validated Fortran."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Exposing petroleum engineering models through Python</h1>
+        <p class="post-byline">Published <time datetime="2026-10-28">2026-10-28</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            The day-to-day users of a petroleum model are rarely the
+            engineers who maintain it: they're reservoir engineers in
+            notebooks, workflows calling property math mid-simulation,
+            ML pipelines needing fluid properties at scale. This post is
+            about the interface those consumers want — and the engineering
+            realities of the source code that constrain it.
+          </p>
+
+          <h2>What petroleum models look like from the outside</h2>
+          <p>
+            Typical legacy decks of this class: a small handful of
+            configuration-like entry points (initialize a fluid at
+            equivalent depths, set a reservoir temperature) followed by
+            question-like routines (bubble point at this pressure?
+            viscosity of this oil? relative permeability? Peaceman well
+            index for this geometry?). The calls are cheap; the semantics
+            are the session: state persists between them.
+          </p>
+
+          <h2>What the Python surface looks like</h2>
+          <p>
+            Exposed through nativegate, the same routines become an
+            importable package where a notebook does:
+          </p>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">the caller's view</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">&gt;&gt;&gt; </span><span class="cmd">import petro_api</span><span class="prompt">&gt;&gt;&gt; </span><span class="out">results = petro_api.exposed_routine(pressure, temperature, composition)</span></div>
+          </div>
+          <p>
+            Typed NumPy arguments in, typed results out. No input-deck
+            editing, no file intermediates, no Fortran knowledge required
+            — while underneath, the same compiled correlations answer,
+            verified against the golden record.
+          </p>
+
+          <h2>The engineering realities that shape the API</h2>
+          <ul>
+            <li><strong>State is a session, not a singleton.</strong> COMMON-block state means configure-then-query. Sequential calls per session; sessions per process. Document it, or concurrency will invent a worse version.</li>
+            <li><strong>Units are the API.</strong> The discipline's units conventions — pressures, depths, densities — are embedded in the routines. Exposing them unchanged is safer than abstracting them: the exposed surface should not add a second unit system to a modernization.</li>
+            <li><strong>Regression is the feature.</strong> The listeners of this API plan wells. The recorded baseline is what makes every change to the surface — new wrapper, new compiler — the same meaning of "unchanged."</li>
+          </ul>
+
+          <h2>Over HTTP, at the second consumer</h2>
+          <p>
+            The same surface becomes HTTP the moment someone other than the
+            authoring team needs it: operations engineers calling from web
+            tools, or another simulator's preprocessor. The generated
+            service adds the API-key auth, rate limiting, and health
+            probes, and carries the same locked-for-correctness semantics
+            — one native call at a time per process, so replicas, not
+            workers, carry the concurrency.
+          </p>
+          <p>
+            The point worth repeating from each of the petroleum posts:
+            nothing here required rewriting the correlations. The
+            modernized part is who can call them.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="fortran-reservoir-model-to-python-api.html">The worked example &rarr;</a>
+          <a class="btn" href="modernizing-legacy-petroleum-engineering-software.html">Related: the petroleum case</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

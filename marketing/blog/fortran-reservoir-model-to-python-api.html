@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>From a Fortran reservoir model to a Python API — nativegate</title>
+  <meta name="description" content="A walkthrough of the committed example: ~4,800 lines of 1988–2004-era Fortran — black-oil PVT and rock-property decks — turned into an importable Python package and a verified FastAPI service, without rewriting the numerics.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="From a Fortran reservoir model to a Python API">
+  <meta property="og:description" content="A walkthrough of the committed example: ~4,800 lines of legacy Fortran turned into a verified Python package and service.">
+  <meta property="og:url" content="https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="From a Fortran reservoir model to a Python API">
+  <meta name="twitter:description" content="A walkthrough of the committed example.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "From a Fortran reservoir model to a Python API",
+    "datePublished": "2026-09-26",
+    "dateModified": "2026-09-26",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html",
+    "description": "A walkthrough of the committed example: ~4,800 lines of legacy Fortran turned into a verified Python package and service."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">From a Fortran reservoir model to a Python API</h1>
+        <p class="post-byline">Published <time datetime="2026-09-26">2026-09-26</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Claims about modernization tools are cheap, so this post is a
+            walkthrough of the example committed in the repository rather
+            than a hypothetical. The source: <code>libraries/petro/</code>,
+            roughly 4,800 lines — seven fixed-form F77 decks written between
+            1988 and 2004 (black-oil PVT correlations and rock-property
+            routines: bubble point, viscosity, oil relative permeability,
+            Peaceman well indices, and neighbors), behind a 2003 F90 facade.
+            The target: an importable Python package and a verified FastAPI
+            service. The rule: the Fortran is never edited.
+          </p>
+
+          <h2>What the decks actually contain</h2>
+          <p>
+            Fixed-form F77 with COMMON blocks and INCLUDE decks. Routines like
+            <code>PVTRS</code> and <code>KROIL</code> are typed functions —
+            <code>DOUBLE PRECISION FUNCTION</code> — which matters because
+            naive discovery patterns only allow a single token before
+            <code>FUNCTION</code> and skip every one of them. The original
+            nativegate run had exactly that defect; it found 25 of 49 routines
+            and generated a service exposing half the API with no warning. That
+            number — 25/49 → 49/49 — is in the repo's findings file, along with
+            the fix.
+          </p>
+
+          <h2>The pipeline, honestly narrated</h2>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">end to end</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">ngate build petro_api</span><span class="prompt">$ </span><span class="cmd">pip install services/petro_api/dist/*.whl</span><span class="prompt">$ </span><span class="cmd">ngate serve petro_api</span><span class="out">127.0.0.1:8000</span><span class="prompt">$ </span><span class="cmd">ngate golden record petro_api &amp;&amp; ngate golden verify petro_api</span><span class="out">4 entry point(s) unchanged (0 not covered).</span></div>
+          </div>
+          <p>
+            Underneath the <code>build</code>, the unmodified decks get a
+            generated, expanded copy — INCLUDEs spliced, parameterized kinds
+            resolved — and f2py produces the extension. Under
+            <code>serve</code>, an ordinary FastAPI app answers HTTP with the
+            same numbers the native binary returns. Under <code>golden
+            verify</code>, recorded outputs of known configurations are
+            replayed and compared.
+          </p>
+
+          <h2>The two details that decide correctness</h2>
+          <h3>COMMON blocks mean one call at a time</h3>
+          <p>
+            The exposed routines share process-global COMMON storage — that is
+            how the deck was designed. Two simultaneous calls would silently
+            hand each other's state back. The generated service therefore
+            holds a process-wide lock across each native call for Fortran
+            services. Throughput comes from running more processes, not more
+            concurrency within one. This is a property of the physics of the
+            old design, not a limitation of the wrapper.
+          </p>
+          <h3>The golden record is the deliverable</h3>
+          <p>
+            <code>services/petro_api/golden.json</code> is committed: the
+            fluid configured at a set of benchmark states and the results the
+            bindings return. Every regeneration, compiler change, or flag
+            change gets measured against it. The other artifacts —
+            Dockerfile, Kubernetes manifests, health probes — matter for
+            deployment, but the golden record is what makes the modernization
+            itself defensible.
+          </p>
+
+          <h2>What it adds up to</h2>
+          <p>
+            A 1988-era correlation deck, unmodified, that a data scientist
+            imports and calls from a notebook; that another team calls over
+            HTTP in a container; that CI proves numerically unchanged after
+            every change. That is modernization without a rewrite, and it
+            generalizes: your deck, whatever domain it models, follows the
+            same path.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#librariespetro">Reproduce it from the repo &rarr;</a>
+          <a class="btn" href="deploying-legacy-engineering-models-as-apis.html">Next: deploying legacy models as APIs</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to deploy a legacy engineering model as an API — nativegate</title>
+  <meta name="description" content="Exposing a legacy Fortran or C++ engineering model over HTTP the careful way: one-call-at-a-time semantics, state, concurrency, timeouts, and what generated services do — and deliberately do not — give you.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How to deploy a legacy engineering model as an API">
+  <meta property="og:description" content="The careful way to put a legacy model behind HTTP: state, concurrency, and what generated services give you — and deliberately don't.">
+  <meta property="og:url" content="https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="How to deploy a legacy engineering model as an API">
+  <meta name="twitter:description" content="State, concurrency, and what generated services give you — and deliberately don't.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to deploy a legacy engineering model as an API",
+    "datePublished": "2026-10-04",
+    "dateModified": "2026-10-04",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html",
+    "description": "The careful way to put a legacy model behind HTTP: state, concurrency, and what generated services give you."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">How to deploy a legacy engineering model as an API</h1>
+        <p class="post-byline">Published <time datetime="2026-10-04">2026-10-04</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Once a legacy model is importable from Python, exposing it over
+            HTTP looks like a small step — and it can be, if you take it with
+            the right respect for what the model actually is. Engineering
+            models are not CRUD applications. This post covers the decisions
+            that matter when you put one behind an API.
+          </p>
+
+          <h2>First: is your model stateful?</h2>
+          <p>
+            Most legacy Fortran and some C++ is <em>stateful</em> — COMMON
+            blocks, static file-scope variables, or an internal
+            configure-then-read session shape. This determines your
+            concurrency story, and it is not optional to answer.
+          </p>
+          <ul>
+            <li><strong>Fortran with COMMON blocks:</strong> the state is process-global. Interleaved calls silently corrupt each other's answers. The generated service holds a process-wide lock across each native call — sequential inside a process, scale by running more processes.</li>
+            <li><strong>C++ with file-scope statics:</strong> a fresh library instance per request protects request-independent calls, but static state behaves like COMMON: either verify the model is stateless or serialize.</li>
+            <li><strong>Session-shaped models:</strong> calls like <code>configure(p, t)</code> followed by <code>calculate()</code> are not safely shared between tenants; one tenant's configuration is another's surprise.</li>
+          </ul>
+          <p>
+            nativegate encodes this in what it generates, rather than asking
+            you to remember it: Fortran services get the lock; the service
+            refuses more than one native call at a time per process. If your
+            capacity math requires removing that lock, the correct answer is
+            more replicas, not less correctness.
+          </p>
+
+          <h2>What the generated service gives you</h2>
+          <p>
+            The generated service is an ordinary FastAPI app, and the
+            operations-grade parts are generated with it rather than promised
+            for later: API-key authentication, rate limiting, a request-size
+            cap, request IDs and access logging, an exception handler,
+            <code>/healthz</code> and <code>/readyz</code> with SIGTERM
+            draining, a multi-stage non-root container, and Kubernetes
+            manifests that match the container's user. Deploying one looks
+            like:
+          </p>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">ship it</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">ngate docker petro_api --build &amp;&amp; ngate k8s petro_api</span></div>
+          </div>
+
+          <h2>What it deliberately does not give you</h2>
+          <ul>
+            <li><strong>Per-call isolation.</strong> A segfault in native code takes the worker down. There is no sandbox, no per-call timeout. The mitigations are process-level: restarts, replica counts, and not exposing routines to callers who can trigger the crash.</li>
+            <li><strong>Multi-tenancy.</strong> These services are for internal, single-tenant deployment — behind your existing boundary, not internet-facing shared infrastructure.</li>
+            <li><strong>Unbounded payloads.</strong> Array size caps are a memory guard at the HTTP layer, not a physics-level bounds check.</li>
+          </ul>
+          <p>
+            These are stated plainly because someone will otherwise discover
+            each of them during an incident rather than a design review.
+          </p>
+
+          <h2>The precondition: verify before you serve</h2>
+          <p>
+            An API multiplies the number of people standing behind the
+            numerics. Which is exactly why the baseline check comes first:
+            record known configurations with <code>ngate golden record</code>,
+            wire <code>ngate golden verify</code> into CI, and only then start
+            serving. The API's job is to widen access to correct answers —
+            the golden record is what makes "correct" a maintained property
+            instead of a one-time audit.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">See the generated service &rarr;</a>
+          <a class="btn" href="fortran-reservoir-model-to-python-api.html">Related: the worked petroleum example</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

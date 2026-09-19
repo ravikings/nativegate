@@ -5,7 +5,12 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  <url>
+    <url>
+    <loc>https://nativegate.dev/enterprise/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+<url>
     <loc>https://nativegate.dev/blog/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -13,6 +18,81 @@
   <url>
     <loc>https://nativegate.dev/blog/generated-bindings-vs-handwritten.html</loc>
     <lastmod>2026-08-13</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/legacy-scientific-software-modernization.html</loc>
+    <lastmod>2026-10-07</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html</loc>
+    <lastmod>2026-10-11</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html</loc>
+    <lastmod>2026-10-14</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/fortran-77-to-python.html</loc>
+    <lastmod>2026-10-18</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/fortran-90-95-to-python.html</loc>
+    <lastmod>2026-10-20</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/containerizing-legacy-scientific-software.html</loc>
+    <lastmod>2026-10-24</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/exposing-petroleum-models-through-python.html</loc>
+    <lastmod>2026-10-28</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html</loc>
+    <lastmod>2026-10-04</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/modernizing-legacy-engineering-software.html</loc>
+    <lastmod>2026-09-30</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html</loc>
+    <lastmod>2026-09-26</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/modernizing-legacy-petroleum-engineering-software.html</loc>
+    <lastmod>2026-09-22</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/nativegate-vs-f90wrap.html</loc>
+    <lastmod>2026-09-19</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/nativegate-vs-f2py.html</loc>
+    <lastmod>2026-09-14</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/fortran-to-python.html</loc>
+    <lastmod>2026-09-08</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nativegate.dev/blog/modernize-legacy-fortran.html</loc>
+    <lastmod>2026-09-01</lastmod>
     <priority>0.6</priority>
   </url>
   <url>

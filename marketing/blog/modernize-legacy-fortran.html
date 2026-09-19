@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to Modernize Legacy Fortran Without Rewriting It — nativegate</title>
+  <meta name="description" content="A practical path to modernizing legacy Fortran without a rewrite: keep the numerics, replace the interface. Source discovery, generated bindings, a Python package, an API, and a numerical baseline that proves the answers did not move.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/modernize-legacy-fortran.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How to Modernize Legacy Fortran Without Rewriting It">
+  <meta property="og:description" content="Keep the numerics, replace the interface. A practical path from a Fortran deck to a Python package, an API, and a verified numerical baseline.">
+  <meta property="og:url" content="https://nativegate.dev/blog/modernize-legacy-fortran.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="How to Modernize Legacy Fortran Without Rewriting It">
+  <meta name="twitter:description" content="Keep the numerics, replace the interface.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to Modernize Legacy Fortran Without Rewriting It",
+    "datePublished": "2026-09-01",
+    "dateModified": "2026-09-01",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/modernize-legacy-fortran.html",
+    "description": "A practical path to modernizing legacy Fortran without a rewrite: keep the numerics, replace the interface."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">How to Modernize Legacy Fortran Without Rewriting It</h1>
+        <p class="post-byline">Published <time datetime="2026-09-01">2026-09-01</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            If you have a validated Fortran codebase — reservoir model, thermal
+            solver, structural codes, anything built between 1980 and 2010 — the
+            instinct at some point is "rewrite it in Python." That instinct is
+            usually expensive and occasionally dangerous. Rewritten code has to
+            re-earn validation from scratch, and the people who can check the
+            answers are often the people whose discipline knowledge outlived
+            every framework since.
+          </p>
+          <p>
+            The alternative: don't rewrite the numerics. Replace the interface
+            around them. This post describes that path concretely.
+          </p>
+
+          <h2>What "modernization" actually means here</h2>
+          <p>
+            A legacy Fortran program usually has two parts that age
+            differently:
+          </p>
+          <ul>
+            <li>
+              <strong>The numerical core</strong> — solvers, correlations,
+              property routines. Old, tested, correct. It ages badly in
+              <em>interface</em> (fixed-format, COMMON blocks, deck-style I/O)
+              but not in <em>substance</em>.
+            </li>
+            <li>
+              <strong>The shell</strong> — the main program, the file formats,
+              the batch scripts, the console output. This is what people
+              actually hate about it, and this is the part worth replacing.
+            </li>
+          </ul>
+          <p>
+            Modernization, in this framing, means: keep the first part byte-compatible,
+            expose the second part's forgotten routines through a modern interface —
+            Python functions first, then an HTTP API and a container if you need them.
+          </p>
+
+          <h2>The path, step by step</h2>
+          <h3>1. Discover what you actually have</h3>
+          <p>
+            Before binding anything, know what exists. In nativegate that is
+            <code>ngate detect</code> — point it at a directory of Fortran
+            sources and get an inventory of modules, subroutines, and the
+           COMMON-block state they share, rather than reading fixed-form
+            decks by eye. On our own legacy example — a black-oil PVT keywarn
+            of seven fixed-form F77 decks from the 1988–2004 era wrapped in an
+            F90 facade — the deck headers lie about what's actually in there;
+            parsing beats squinting.
+          </p>
+
+          <h3>2. Record the baseline before you touch anything</h3>
+          <p>
+            This is the step most modernization projects skip, and it's the one
+            that makes the rest defensible. Run the known configurations, capture
+            the outputs, and commit them. In nativegate terms:
+          </p>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">ngate golden record</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">ngate golden record petro_api  # -&gt; services/petro_api/golden.json</span></div>
+          </div>
+          <p>
+            Every future change — regenerated bindings, new compiler, new flags —
+            gets measured against this file with <code>ngate golden verify</code>.
+            If a float moved, you hear about it before your users do.
+          </p>
+
+          <h3>3. Expose a chosen surface, not the whole file</h3>
+          <p>
+            A 4,000-line deck over-scanned by a binding generator produces an
+            SDK nobody asked for. Pick the routines an external caller would
+            actually need — ten is usually enough — and bind exactly those. The
+            rest of the code stays compiled-in and reachable through the ones
+            you exposed. Projection, not total exposure.
+          </p>
+
+          <h3>4. Generate, build, verify</h3>
+          <p>
+            From one <code>nativegate.yaml</code>, nativegate generates the f2py
+            bindings, the CMake build, an installable wheel, a pytest suite,
+            and a FastAPI service. The acceptance run is then:
+          </p>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">verify the answers did not move</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">ngate build petro_api && ngate golden verify petro_api</span><span class="out">4 entry point(s) unchanged (0 not covered).</span></div>
+          </div>
+          <p>
+            That line — numbers unchanged, coverage stated — is the deliverable.
+            It is what turns "we modernized the code" from a claim into a
+            repeatable check.
+          </p>
+
+          <h3>5. Package and deploy at your own pace</h3>
+          <p>
+            The wheel is an ordinary Python package; nothing at runtime depends
+            on the tool that generated it. If a scripted pipeline is enough,
+            stop there. If people outside your team need the model, the same
+            service runs under Docker (<code>ngate docker</code>) and lands in
+            Kubernetes manifests (<code>ngate k8s</code>) with health probes and
+            a non-root user already set up. You can stop at any rung of this
+            ladder without discarding the rung below it.
+          </p>
+
+          <h2>What this approach deliberately does not promise</h2>
+          <p>
+            It does not convert your Fortran into readable Python. The numerics
+            stay Fortran. The deliverable is a <em>modern interface</em> over
+            the same compiled code — which is precisely why the numerical
+            regression check is meaningful. If the generators were also
+            rewriting the math, "the answers did not change" would stop being a
+            useful claim.
+          </p>
+          <p>
+            It also does not make the service multi-tenant-safe. Fortran one
+            call at a time per process — the generated service holds a lock
+            across each native call, because COMMON blocks are process-global
+            storage, so throughput comes from more processes, not more
+            concurrent requests in one of them.
+          </p>
+
+          <h2>Where to start on your own code</h2>
+          <p>
+            The smallest honest first day of work: run a discover pass, record a
+            golden baseline on one configuration, bind a single routine, and get
+            <code>ngate golden verify</code> to print "unchanged" on it. If that
+            works on your deck, the rest is the same pattern scaled up. You don't
+            have to decide between "living on a batch script" and "a full
+            rewrite" — those aren't the only two states your code can be in.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">Try it on your codebase &rarr;</a>
+          <a class="btn" href="./nativegate-vs-f2py.html">Also see: F2PY vs nativegate</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fortran to Python: A Practical Modernization Guide — nativegate</title>
+  <meta name="description" content="How to call Fortran from Python for real: what f2py gives you, where the manual work piles up (intents, derived types, COMMON state, builds, deployment), and what a full Fortran-to-Python pipeline produces end to end.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/fortran-to-python.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Fortran to Python: A Practical Modernization Guide">
+  <meta property="og:description" content="What f2py gives you, where the manual work piles up, and what a full Fortran-to-Python pipeline produces end to end.">
+  <meta property="og:url" content="https://nativegate.dev/blog/fortran-to-python.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="Fortran to Python: A Practical Modernization Guide">
+  <meta name="twitter:description" content="What f2py gives you, where the manual work piles up, and what a full pipeline produces end to end.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Fortran to Python: A Practical Modernization Guide",
+    "datePublished": "2026-09-08",
+    "dateModified": "2026-09-08",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/fortran-to-python.html",
+    "description": "How to call Fortran from Python for real: what f2py gives you, where the manual work piles up, and what a full pipeline produces end to end."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx='16' cy='16' r='2.2' fill='var(--accent)'/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">Fortran to Python: A Practical Modernization Guide</h1>
+        <p class="post-byline">Published <time datetime="2026-09-08">2026-09-08</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            "Fortran to Python" sounds like a compiler technology: feed in a
+            deck, get Python source out. That product doesn't exist, and it
+            mostly shouldn't — translating numerical code into another language
+            is how subtle numeric differences and lost validation happen. What
+            actually exists, and works well, is <em>interop</em>: Python
+            calling the same compiled Fortran it always did. This guide is about
+            that, honestly: what the existing tools give you, and where the
+            unglamorous work actually sits.
+          </p>
+
+          <h2>The boundary layer is mostly solved</h2>
+          <p>
+            NumPy's f2py has connected Fortran and Python for decades and is
+            still actively maintained; it parses Fortran and emits a Python
+            extension module. f90wrap builds on it to handle modular Fortran,
+            including derived types and type-bound procedures. A third path is
+            hand-written ISO_C_BINDING shims plus ctypes, which some teams
+            prefer for full control. If your problem is "one routine, well
+            described, called once," any of these gets you there this week.
+          </p>
+
+          <h2>Where the work actually piles up</h2>
+          <p>
+            On a real legacy codebase — ours is a black-oil PVT model: seven
+            fixed-form F77 decks under an F90 facade — the boundary layer is a
+            few days. Everything around it is the project:
+          </p>
+          <ul>
+            <li>
+              <strong>Intent is inferred, not declared.</strong> Old decks rarely
+              say INTENT(IN). Every argument is potentially in, out, or both;
+              getting that wrong produces silent garbage, not errors. Someone
+              (or a tool) has to figure out the direction of every array.
+            </li>
+            <li>
+              <strong>COMMON blocks are global state.</strong> Two exposed
+              routines mutating the same COMMON block means your Python calls
+              are order-dependent. Interop tools don't fix that; the service
+              contract has to account for it (nativegate's generated Fortran
+              services hold one call at a time per process for exactly this
+              reason).
+            </li>
+            <li>
+              <strong>Build and packaging.</strong> A binding that builds on
+              your machine is not a package. You need CMake or meson
+              orchestration, scikit-build-core or setuptools glue, an installable
+              wheel, and a story for gfortran on every machine you build on.
+            </li>
+            <li>
+              <strong>Evidence that the numbers did not move.</strong> The
+              moment you re-plan any compilation, someone will reasonably ask
+              whether the physics changed. A recorded baseline and a
+              <code>verify</code> that compares against it answer that
+              indefinitely.
+            </li>
+            <li>
+              <strong>Publishing beyond your team.</strong> And if people
+              outside your team need the model over HTTP, you're into codegen
+              for a FastAPI service, Docker image, Kubernetes manifests, health
+              probes, auth. Each is small; the sum is weeks.
+            </li>
+          </ul>
+
+          <h2>What a full pipeline looks like</h2>
+          <p>
+            nativegate exists because those five work-items are the same
+            every time; it generates them from one configuration. The
+            committed example in the repository is the petroleum service:
+          </p>
+          <div class="terminal" style="margin: var(--space-8) 0;">
+            <div class="terminal-bar">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="title">from deck to verified service</span>
+            </div>
+            <div class="terminal-body"><span class="prompt">$ </span><span class="cmd">ngate build petro_api</span><span class="prompt">$ </span><span class="cmd">ngate golden record petro_api</span><span class="prompt">$ </span><span class="cmd">ngate docker petro_api --build</span><span class="prompt">$ </span><span class="cmd">ngate golden verify petro_api</span><span class="out">4 entry point(s) unchanged (0 not covered).</span></div>
+          </div>
+          <p>
+            One configuration (<code>nativegate.yaml</code>) declares which
+            routines to expose; everything listed above that it can generate,
+            it does generate. What it does not generate it refuses with a
+            stated reason. And the generated artifacts stand on their own:
+            the wheel imports without depending on the generator, and the
+            service runs as an ordinary FastAPI app.
+          </p>
+
+          <h2>Practical advice, whatever tool you pick</h2>
+          <ul>
+            <li>Expose a <em>chosen</em> surface — ten routines — not the whole file.</li>
+            <li>Record a numerical baseline <em>before</em> the first binding change, and commit it.</li>
+            <li>Treat COMMON-block state as part of the API contract, not an implementation detail.</li>
+            <li>Make the wheel build in CI, not just on your laptop.</li>
+            <li>Wait for the second user before building the HTTP service.</li>
+          </ul>
+          <p>
+            If you only remember one line from this post: the hard part of
+            Fortran-to-Python was never the
+            <code>f2py -c</code> command. It's the work afterwards, and that
+            work is what nativegate generates.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="nativegate-vs-f2py.html">F2PY vs nativegate: which for your codebase? &rarr;</a>
+          <a class="btn" href="https://github.com/ravikings/nativegate#readme">View on GitHub</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

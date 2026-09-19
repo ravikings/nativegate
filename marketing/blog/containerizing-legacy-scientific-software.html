@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to containerize legacy scientific software — nativegate</title>
+  <meta name="description" content="A practical guide to putting legacy scientific software in containers: what the runtime image actually needs (a compiler, non-root user, log discipline), what must match the orchestrator, and what correctness rules the container must not pretend to solve.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/containerizing-legacy-scientific-software.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How to containerize legacy scientific software">
+  <meta property="og:description" content="What the runtime image needs, what must match the orchestrator, and what correctness rules the container must not pretend to solve.">
+  <meta property="og:url" content="https://nativegate.dev/blog/containerizing-legacy-scientific-software.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="How to containerize legacy scientific software">
+  <meta name="twitter:description" content="What the image needs, what must match the orchestrator, what stays unsolved.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "How to containerize legacy scientific software",
+    "datePublished": "2026-10-24",
+    "dateModified": "2026-10-24",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/containerizing-legacy-scientific-software.html",
+    "description": "What the image needs, what must match the orchestrator, and what correctness rules the container cannot solve."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">How to containerize legacy scientific software</h1>
+        <p class="post-byline">Published <time datetime="2026-10-24">2026-10-24</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Containerizing a 1990s numerical model is different from
+            containerizing a web app, mostly because the interesting
+            decisions are invisible in a Dockerfile. This guide covers
+            what matters when the binary being shipped is forty years of
+            physics.
+          </p>
+
+          <h2>Decide first: compiler in the image, or wheel in the image?</h2>
+          <p>
+            Two honest architectures exist. Ship the compiled wheel and a
+            slim runtime — the generated nativegate Dockerfile's shape:
+            builder stage has the toolchain, runtime stage is
+            <code>python:3.11-slim</code> plus the wheel. Or ship the full
+            compiler toolchain and build at startup — which buys nothing at
+            runtime and costs attack surface, size, and startup time for a
+            program whose inputs are known. Prefer the wheel unless you
+            have a stated reason otherwise.
+          </p>
+
+          <h2>Run unprivileged — deliberately, in both files</h2>
+          <p>
+            The runtime user must be unprivileged, and it must match
+            somewhere. Generated nativegate images create an explicit UID
+            1000; its generated Kubernetes manifests set
+            <code>runAsUser: 1000</code> and <code>runAsNonRoot: true</code>
+            — generated from one source so the two files can't drift into a
+            permissions failure nobody attributes to either. If you're
+            writing these by hand, copy the pattern: one number, declared
+            twice, in review together.
+          </p>
+
+          <h2>Read-only root filesystem is a Python contract</h2>
+          <p>
+            <code>readOnlyRootFilesystem: true</code> is a good posture and
+            a Python constraint: the interpreter writes <code>.pyc</code>
+            files next to source by default, and a read-only root turns
+            that into a crash. Set <code>PYTHONDONTWRITEBYTECODE=1</code>
+            (and <code>PYTHONUNBUFFERED=1</code> so logs stream), or pick
+            your writable-disk story consciously.
+          </p>
+
+          <h2>Health probes match the model</h2>
+          <p>
+            <code>/healthz</code> and <code>/readyz</code> on a service
+            backed by native code should probe what you actually care
+            about: process up, and the native surface answering. The
+            generated service includes both, with SIGTERM draining so
+            rollout restarts don't cut off in-flight calls.
+          </p>
+
+          <h2>What containerization does not fix</h2>
+          <ul>
+            <li><strong>Statefulness.</strong> A container still runs one process with one COMMON-block store; the one-call-at-a-time rule survives containerization intact. Scale with replicas.</li>
+            <li><strong>Native crashes.</strong> A segfault in the physics kills the worker inside a perfectly configured container. Restarts and replicas contain it; the container never prevents it.</li>
+            <li><strong>Numerical drift.</strong> A container pins the build for the moment it was built; a golden record pins the <em>answers</em> across every rebuild. Ship both together.</li>
+          </ul>
+          <p>
+            An honest conclusion for a container built from generated
+            artifacts: the image is the smallest and most boring part of
+            the deliverable — which is precisely why it's a good candidate
+            for generation.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">See the generated Dockerfile &rarr;</a>
+          <a class="btn" href="deploying-legacy-engineering-models-as-apis.html">Next: deploying as an API</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

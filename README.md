@@ -6,6 +6,9 @@ bindings. Modernization here means the interface, the packaging and the
 deployment; the numerics stay exactly where they are, and stay provably
 unchanged.
 
+[Website](https://nativegate.dev) · [Blog](https://nativegate.dev/blog/) · [Enterprise](https://nativegate.dev/enterprise/) · [Source](https://github.com/ravikings/nativegate)
+
+
 This monorepo holds three things:
 
 1. **[`tools/nativegate/`](tools/nativegate/)** — the generator. Point it at a

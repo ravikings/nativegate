@@ -7,6 +7,111 @@
     <language>en</language>
     <atom:link href="https://nativegate.dev/blog/feed.xml" rel="self" type="application/rss+xml"/>
     <item>
+      <title>Exposing petroleum engineering models through Python</title>
+      <link>https://nativegate.dev/blog/exposing-petroleum-models-through-python.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/exposing-petroleum-models-through-python.html</guid>
+      <pubDate>Wed, 28 Oct 2026 00:00:00 GMT</pubDate>
+      <description>How PVT correlations and well-property models become callable Python and HTTP without rewriting the validated Fortran.</description>
+    </item>
+    <item>
+      <title>How to containerize legacy scientific software</title>
+      <link>https://nativegate.dev/blog/containerizing-legacy-scientific-software.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/containerizing-legacy-scientific-software.html</guid>
+      <pubDate>Sat, 24 Oct 2026 00:00:00 GMT</pubDate>
+      <description>What the image needs, what must match the orchestrator, and what correctness rules the container cannot solve.</description>
+    </item>
+    <item>
+      <title>Fortran 90/95 to Python: practical considerations</title>
+      <link>https://nativegate.dev/blog/fortran-90-95-to-python.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/fortran-90-95-to-python.html</guid>
+      <pubDate>Tue, 20 Oct 2026 00:00:00 GMT</pubDate>
+      <description>Easier to bind than F77 — but each modern feature carries a practical consideration when exposed to Python.</description>
+    </item>
+    <item>
+      <title>Fortran 77 to Python: what actually changes</title>
+      <link>https://nativegate.dev/blog/fortran-77-to-python.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/fortran-77-to-python.html</guid>
+      <pubDate>Sun, 18 Oct 2026 00:00:00 GMT</pubDate>
+      <description>What actually changes when F77 becomes reachable from Python, and what deliberately doesn't.</description>
+    </item>
+    <item>
+      <title>How to wrap legacy Fortran with F2PY</title>
+      <link>https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/how-to-wrap-legacy-fortran-with-f2py.html</guid>
+      <pubDate>Wed, 14 Oct 2026 00:00:00 GMT</pubDate>
+      <description>A practical walkthrough: the happy path, the legacy-deck path, and what remains to build after the extension module compiles.</description>
+    </item>
+    <item>
+      <title>F2PY: when it works and where it stops</title>
+      <link>https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html</guid>
+      <pubDate>Sun, 11 Oct 2026 00:00:00 GMT</pubDate>
+      <description>Where NumPy's F2PY is genuinely the right answer, and the honest list of what it does not address.</description>
+    </item>
+    <item>
+      <title>Legacy scientific software modernization: a practical guide</title>
+      <link>https://nativegate.dev/blog/legacy-scientific-software-modernization.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/legacy-scientific-software-modernization.html</guid>
+      <pubDate>Wed, 07 Oct 2026 00:00:00 GMT</pubDate>
+      <description>How organizations actually modernize legacy scientific software without rewriting the math.</description>
+    </item>
+    <item>
+      <title>How to deploy a legacy engineering model as an API</title>
+      <link>https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/deploying-legacy-engineering-models-as-apis.html</guid>
+      <pubDate>Sun, 04 Oct 2026 00:00:00 GMT</pubDate>
+      <description>Stateful models, one-call-at-a-time semantics, and what the generated service gives you — and deliberately doesn't.</description>
+    </item>
+    <item>
+      <title>Modernizing legacy engineering software: why big rewrites fail</title>
+      <link>https://nativegate.dev/blog/modernizing-legacy-engineering-software.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/modernizing-legacy-engineering-software.html</guid>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
+      <description>Rewrites transfer decades of invisible discipline decisions by hand, with no oracle. Interface-first modernization with a numerical baseline works.</description>
+    </item>
+    <item>
+      <title>From a Fortran reservoir model to a Python API</title>
+      <link>https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/fortran-reservoir-model-to-python-api.html</guid>
+      <pubDate>Sat, 26 Sep 2026 00:00:00 GMT</pubDate>
+      <description>A walkthrough of the committed example: 4,800 lines of unmodified Fortran, a verified service, and the two details that decide correctness.</description>
+    </item>
+    <item>
+      <title>Modernizing legacy petroleum engineering software</title>
+      <link>https://nativegate.dev/blog/modernizing-legacy-petroleum-engineering-software.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/modernizing-legacy-petroleum-engineering-software.html</guid>
+      <pubDate>Tue, 22 Sep 2026 00:00:00 GMT</pubDate>
+      <description>PVT decks, COMMON blocks, and validation as the asset: why petroleum software is the hard version of the modernization problem.</description>
+    </item>
+    <item>
+      <title>f90wrap vs nativegate: Python interfaces vs a full modernization workflow</title>
+      <link>https://nativegate.dev/blog/nativegate-vs-f90wrap.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/nativegate-vs-f90wrap.html</guid>
+      <pubDate>Sat, 19 Sep 2026 00:00:00 GMT</pubDate>
+      <description>f90wrap handles modern, object-shaped Fortran with real derived-type support. An honest comparison of where interface generation ends and a full modernization workflow begins.</description>
+    </item>
+    <item>
+      <title>F2PY vs nativegate: which should you use?</title>
+      <link>https://nativegate.dev/blog/nativegate-vs-f2py.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/nativegate-vs-f2py.html</guid>
+      <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>
+      <description>F2PY is NumPy's own Fortran-to-Python tool and remains the right choice for many jobs. An honest comparison of scope: bindings vs the whole modernization workflow.</description>
+    </item>
+    <item>
+      <title>Fortran to Python: a practical modernization guide</title>
+      <link>https://nativegate.dev/blog/fortran-to-python.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/fortran-to-python.html</guid>
+      <pubDate>Tue, 08 Sep 2026 00:00:00 GMT</pubDate>
+      <description>The Fortran-to-Python boundary layer is mostly solved. Where the work actually piles up: intent, COMMON state, builds, packaging, and evidence the numbers didn't move.</description>
+    </item>
+    <item>
+      <title>How to modernize legacy Fortran without rewriting it</title>
+      <link>https://nativegate.dev/blog/modernize-legacy-fortran.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/modernize-legacy-fortran.html</guid>
+      <pubDate>Tue, 01 Sep 2026 00:00:00 GMT</pubDate>
+      <description>Keep the numerics, replace the interface. The path from a validated deck to a Python package, an API, and a verified numerical baseline.</description>
+    </item>
+    <item>
       <title>Non-root by default: the container a generated service actually runs in</title>
       <link>https://nativegate.dev/blog/isolated-native-builds.html</link>
       <guid isPermaLink="true">https://nativegate.dev/blog/isolated-native-builds.html</guid>

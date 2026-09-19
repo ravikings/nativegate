@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>f90wrap vs nativegate: Python interfaces vs a full modernization workflow — nativegate</title>
+  <meta name="description" content="f90wrap is a legitimate Fortran/Python interface generator with solid derived-type support. An honest comparison: interface generation vs the whole pipeline from bindings to verified, containerized services.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/nativegate-vs-f90wrap.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="f90wrap vs nativegate: Python interfaces vs a full modernization workflow">
+  <meta property="og:description" content="f90wrap is a legitimate interface generator with solid derived-type support. An honest comparison of scope, not a contest.">
+  <meta property="og:url" content="https://nativegate.dev/blog/nativegate-vs-f90wrap.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — paste a repo, get an API and an MCP endpoint">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="f90wrap vs nativegate">
+  <meta name="twitter:description" content="Interface generation vs the whole modernization workflow.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "f90wrap vs nativegate: Python interfaces vs a full modernization workflow",
+    "datePublished": "2026-09-19",
+    "dateModified": "2026-09-19",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/nativegate-vs-f90wrap.html",
+    "description": "f90wrap is a legitimate Fortran/Python interface generator with solid derived-type support. An honest comparison of scope."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../index.html#agents">Agentic tools</a>
+        <a href="index.html">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Comparisons</div>
+        <h1 class="post-title">f90wrap vs nativegate: Python interfaces vs a full modernization workflow</h1>
+        <p class="post-byline">Published <time datetime="2026-09-19">2026-09-19</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            f90wrap deserves the same respect here that F2PY got in the
+            previous comparison. It's a maintained, widely used generator for
+            Fortran-Python interfaces, and it handles territory nativegate
+            treats narrowly: <strong>derived types</strong> and type-bound
+            procedures, wrapped into Python classes rather than flattened into
+            argument lists. If your modern code is module-heavy with an
+            object-shaped surface, f90wrap speaks that dialect better than we
+            do today.
+          </p>
+
+          <h2>Where the scopes genuinely differ</h2>
+          <p>
+            f90wrap answers: "how do I <em>call</em> this Fortran from
+            Python?" It stops, correctly, at a high-quality extension module.
+            What happens around that module — the build system, the wheel, the
+            tests, the evidence the numbers didn't move, the deployment — is
+            the same story as with f2py, and it's where nativegate's scope
+            begins.
+          </p>
+          <table>
+            <tr><th>Capability</th><th>f90wrap</th><th>nativegate</th></tr>
+            <tr><td>Fortran &rarr; Python bindings</td><td>&check;</td><td>&check;</td></tr>
+            <tr><td>Derived types &rarr; Python objects</td><td>&check;</td><td>narrow (scalar components, module-contained types, free-form source)</td></tr>
+            <tr><td>Type-bound procedures</td><td>&check;</td><td>&mdash;</td></tr>
+            <tr><td>Modern modular Fortran (F90+)</td><td>&check;</td><td>&check;</td></tr>
+            <tr><td>Legacy fixed-form F77 decks with inferred intent</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>Generated CMake build + installable wheel</td><td>your job</td><td>&check;</td></tr>
+            <tr><td>Generated pytest suite + golden-record numerical regression</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>Generated FastAPI service</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>Docker image + Kubernetes manifests</td><td>&mdash;</td><td>&check;</td></tr>
+            <tr><td>C++ support via pybind11</td><td>&mdash;</td><td>&check;</td></tr>
+          </table>
+
+          <h2>The trade in one sentence</h2>
+          <p>
+            f90wrap wins the benchmark it exists to win — faithfully wrapping
+            modern, modular, object-shaped Fortran. nativegate wins when the
+            phrase "Fortran to Python" is the beginning of a project rather
+            than its end, and the remaining work is packaging, deployment,
+            organization.
+          </p>
+
+          <h2>Compatibility notes worth stating plainly</h2>
+          <ul>
+            <li>nativegate's derived types require the type defined in the same file, all-scalar components, a subroutine inside a module, and free-form source. Outside those boundaries, we'd rather refuse with a stated reason than guess — f90wrap is the better tool for general derived-type work.</li>
+            <li>Fixed-form F77 decks — 1980s–90s code with INCLUDE chains, COMMON blocks, and no INTENT declarations — is where f90wrap wasn't headed and where nativegate's parser does its heaviest lifting.</li>
+            <li>Nothing stops the two from coexisting: f90wrap for a well-typed modern module inside a bigger project, nativegate for the ancient deck nobody wants to touch but everybody needs.</li>
+          </ul>
+
+          <h2>The honest bottom line</h2>
+          <p>
+            Pick f90wrap if your goal is "Python code that uses this modern
+            Fortran library." Pick nativegate if your goal is "this legacy
+            system lives behind a modern, verified, deployable interface." Both
+            goals are legitimate, and the tools cross-promote each other's
+            boundaries more than they compete.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="https://github.com/ravikings/nativegate#readme">See what nativegate generates &rarr;</a>
+          <a class="btn" href="./nativegate-vs-f2py.html">Also see: F2PY vs nativegate</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

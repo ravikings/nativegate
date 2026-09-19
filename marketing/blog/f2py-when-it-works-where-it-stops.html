@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F2PY: when it works and where it stops — nativegate</title>
+  <meta name="description" content="A field-evaluation of NumPy's F2PY: the cases where it is genuinely the right answer, and the honest list of what it does not address — packaging, deployment, testing, and numerical regression assurance.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="F2PY: when it works and where it stops">
+  <meta property="og:description" content="Where NumPy's F2PY is genuinely the right answer, and the honest list of what it does not address.">
+  <meta property="og:url" content="https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — modernize legacy Fortran and C++ without rewriting it">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="F2PY: when it works and where it stops">
+  <meta name="twitter:description" content="Where F2PY is genuinely the right answer, and what it does not address.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "F2PY: when it works and where it stops",
+    "datePublished": "2026-10-11",
+    "dateModified": "2026-10-11",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/f2py-when-it-works-where-it-stops.html",
+    "description": "Where NumPy's F2PY is genuinely the right answer, and the honest list of what it does not address."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr; </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Guides</div>
+        <h1 class="post-title">F2PY: when it works and where it stops</h1>
+        <p class="post-byline">Published <time datetime="2026-10-11">2026-10-11</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            F2PY — NumPy's Fortran-to-Python wrapper — is one of the oldest,
+            best-maintained tools in the scientific Python stack. This post
+            is a plain evaluation: the situations where reaching for it is
+            genuinely the right call, and an honest list of the things it
+            does not set out to solve. (For the direct scope comparison with
+            nativegate, see <a href="nativegate-vs-f2py.html">F2PY vs
+            nativegate</a>; nativegate delegates Fortran binding to f2py.)
+          </p>
+
+          <h2>When f2py is the right call</h2>
+          <ul>
+            <li><strong>Well-specified source.</strong> Free-form Fortran 90+ with explicit INTENT declarations, module structure, and no exotic state. This is the f2py sweet spot and it remains great there.</li>
+            <li><strong>One library, one integration.</strong> You need <code>.so</code>-level access from Python and you already have a build system, tests, and deployment story. f2py slots straight in.</li>
+            <li><strong>Argument-level control.</strong> f2py's signature directives (<code>!f2py intent(...)</code>) let you hand-tune argument behavior case by case; nothing generated beats explicitness when a routine is weird.</li>
+            <li><strong>Longevity.</strong> Decades of use, NumPy-core maintenance, and published guidance. Tools that outlive their authors are worth taking seriously.</li>
+          </ul>
+
+          <h2>Where it stops</h2>
+          <p>
+            f2py stops, by design, at the Python-Fortran boundary. What it is
+            not is a modernization workflow; each of these is left to you:
+          </p>
+          <ul>
+            <li><strong>Intent inference.</strong> Old code without INTENT declarations needs a human or a tool to decide argument directions. f2py guesses on intent when not told, and a wrong guess becomes a silent wrong answer rather than a build error.</li>
+            <li><strong>Legacy-deck reality.</strong> INCLUDE-deck composition, unresolved parameterized kinds, and 1980s fixed-form dialects may pass the binding and then fail at the edges. Building the expanded-parse shims is a tool-week of its own.</li>
+            <li><strong>Packaging and distribution.</strong> A compiled extension is not an installable package. CMake/scikit-build orchestration, locked wheels, and CI across compilers are yours to write and re-write.</li>
+            <li><strong>Testing and numerical regression.</strong> No binding generator ships with a baseline: recording known configurations and failing on drift is a separate harness to build.</li>
+            <li><strong>Concurrency and state.</strong> A f2py module will happily let two threads collide inside COMMON-block state. Nothing stops you; nothing warns you.</li>
+            <li><strong>Service and deployment.</strong> HTTP, containers, Kubernetes, auth: all downstream work, ungenerated.</li>
+          </ul>
+
+          <h2>The pattern, generally</h2>
+          <p>
+            f2py is excellent at what it covers and neutral about what's
+            around it. If you own the surrounding work all the way to
+            production, that "neutral" is fine. If not, the honest framing is
+            that f2py resets your problem from "Fortran and Python" to
+            "Python package engineering, testing, deployment, and validation."
+          </p>
+          <p>
+            Which is exactly the gap nativegate is built to close — without
+            replacing f2py, and in the same conviction f2py embodies: the
+            binding is the smallest step of the modernization.
+          </p>
+        </div>
+
+        <div class="post-cta">
+          <a class="btn primary" href="nativegate-vs-f2py.html">The direct comparison &rarr;</a>
+          <a class="btn" href="how-to-wrap-legacy-fortran-with-f2py.html">Next: wrapping legacy Fortran with f2py</a>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>
