@@ -454,8 +454,16 @@ def test_the_cancellation_path_is_not_caught_as_a_plain_exception():
     # bare `except Exception` silently reinstates it.
     source = mcp_gen.generate_mcp_py("petro")
 
+    # Two best-effort logging guards (json.dumps fallbacks) carry an explicit
+    # noqa annotation; only an UNANNOTATED plain catch silently reinstates the
+    # bug this pins.
+    plain_catches = [
+        line
+        for line in source.splitlines()
+        if "except Exception:" in line and "noqa" not in line
+    ]
     assert "except asyncio.CancelledError:" in source
-    assert "except Exception:" not in source
+    assert not plain_catches
 
 
 def test_the_mcp_app_is_built_at_the_root_path_not_at_the_default():
