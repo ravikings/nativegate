@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ravikings.github.io/nativegate/sitemap.xml
+Sitemap: https://nativegate.dev/sitemap.xml

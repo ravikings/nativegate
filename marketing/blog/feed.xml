@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>nativegate blog</title>
+    <link>https://nativegate.dev/blog/</link>
+    <description>Notes on turning legacy C++ and Fortran into live APIs: generated bindings, isolated builds, and numeric drift detection.</description>
+    <language>en</language>
+    <atom:link href="https://nativegate.dev/blog/feed.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Non-root by default: the container a generated service actually runs in</title>
+      <link>https://nativegate.dev/blog/isolated-native-builds.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/isolated-native-builds.html</guid>
+      <pubDate>Thu, 20 Aug 2026 00:00:00 GMT</pubDate>
+      <description>The build container a generated service runs in: non-root, network-isolated, and why a compiler you don't control still doesn't get to touch your host.</description>
+    </item>
+    <item>
+      <title>Generated bindings, not hand-written ones</title>
+      <link>https://nativegate.dev/blog/generated-bindings-vs-handwritten.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/generated-bindings-vs-handwritten.html</guid>
+      <pubDate>Thu, 13 Aug 2026 00:00:00 GMT</pubDate>
+      <description>Why nativegate generates pybind11 and f2py bindings from what the source actually declares, instead of asking you to maintain wrappers by hand.</description>
+    </item>
+  </channel>
+</rss>
