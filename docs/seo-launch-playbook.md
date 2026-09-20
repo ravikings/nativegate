@@ -74,7 +74,7 @@ Status as of 2026-09-19:
 
 | Target | Section | Status |
 |---|---|---|
-| punkpeye/awesome-mcp-servers (95k★) | Developer Tools (agent-fast-track: 🤖🤖🤖 in PR title) | **PR #14712** opened 2026-09-19 |
+| punkpeye/awesome-mcp-servers (95k★) | Developer Tools (agent-fast-track: 🤖🤖🤖 in PR title) | **PR #14712** open; bot requires Glama listing + badge (see Glama step below) |
 | appcypher/awesome-mcp-servers (5.7k★) | Tools & Utilities | blocked via API (PR creation denied, issues disabled); branch ready on fork — submit manually at https://github.com/appcypher/awesome-mcp-servers/compare/main...ravikings:awesome-mcp-servers:add-nativegate |
 | rabbiabram/awesome-fortran (415★) | Compiling & building | **PR #25** opened 2026-09-19 |
 | brandonhimpfen/awesome-fortran | Interoperability (already lists f2py) | **PR #22** opened 2026-09-19 |
@@ -82,11 +82,22 @@ Status as of 2026-09-19:
 | feststelltaste/awesome-agentic-software-modernization | case studies (NOT tools) | later, as a case-study entry |
 | fffaraz/awesome-cpp (73k★) | propose Interop section | later, once repo has adoption evidence |
 
-Entry text used (tune per list's format):
+## 4.1 Glama listing (unblocks the punkpeye PR — 15 minutes, browser only)
 
-```
-- [nativegate](https://github.com/ravikings/nativegate) - Generates f2py/pybind11 bindings, a Python package, a FastAPI service, Docker/Kubernetes artifacts, and numerical golden-record regression checks from legacy C++/Fortran code. MIT.
-```
+The punkpeye bot enforces a Glama badge on every entry. For nativegate:
+
+1. Sign in at https://glama.ai/mcp/servers with GitHub OAuth.
+2. Submit the repo; add the generated service Dockerfile (`services/petro_api/Dockerfile`)
+   for their startup/introspection check (the /mcp endpoint must start).
+3. Once listed, update PR #14712's line so the badge sits between the repo link and
+   the emojis — exactly like its neighbors:
+   `- [ravikings/nativegate](repo) [![ravikings/nativegate MCP server](https://glama.ai/mcp/servers/ravikings/nativegate/badges/score.svg)](https://glama.ai/mcp/servers/ravikings/nativegate) 🐍 🏠 🍎 🪟 🐧 - ...`
+
+## 4-bis. brandonhimpfen PR was closed, not merged
+
+PR #22 at brandonhimpfen/awesome-fortran was closed without merge. Do not
+re-submit without a change of substance; ask the maintainer what the
+objection was first.
 
 ## 5. Directories (manual, one clean listing each — skip everything else)
 
@@ -102,7 +113,7 @@ Entry text used (tune per list's format):
 | GSC verify + sitemap | ☐ | | |
 | Bing WMT | ☐ | | |
 | Show HN | ☐ | | |
-| awesome-mcp-servers (punkpeye) PR | ☐ | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
+| punkpeye/awesome-mcp-servers (punkpeye) PR | ☐ — blocked on Glama listing | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
 | awesome-fortran (brandonhimpfen) PR | ☐ | 2026-09-19 | https://github.com/brandonhimpfen/awesome-fortran/pull/22 |
