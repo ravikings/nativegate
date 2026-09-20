@@ -1,7 +1,8 @@
-# nativegate — automated modernization of legacy scientific computing
+# nativegate — make legacy Fortran and C++ AI-ready and microservice-ready
 
-Decades-old engineering code — 1990s C++ over FORTRAN 77 — reachable from
-Python as deployable services, without rewriting it and without hand-writing
+Decades-old engineering code — 1990s C++ over FORTRAN 77 — turned into an
+MCP server, a REST API and a container that AI agents and modern systems can
+call today, without rewriting it and without hand-writing
 bindings. Modernization here means the interface, the packaging and the
 deployment; the numerics stay exactly where they are, and stay provably
 unchanged.

@@ -1,4 +1,4 @@
-# nativegate — automated modernization of legacy scientific computing
+# nativegate — make legacy C++ and Fortran AI-ready and microservice-ready
 
 Expose existing C++ and Fortran code to Python as deployable microservices —
 without hand-writing bindings, and without touching the numerics.

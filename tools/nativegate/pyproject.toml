@@ -14,7 +14,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nativegate"
 version = "0.1.0"
-description = "Automated modernization of legacy scientific computing: expose native C++/C/Fortran code to Python as deployable microservices"
+description = "Make legacy C++/C/Fortran AI-ready and microservice-ready: expose native code as an MCP server, REST API and container"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
