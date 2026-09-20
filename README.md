@@ -239,3 +239,7 @@ Before running any of this for a workload that matters, read
 [Is this production-ready?](tools/nativegate/docs/production-readiness.md) and
 [the defect list](tools/nativegate/DEFECTS.md) — honest gap lists against
 `design.md`'s own requirements, not a sales pitch.
+
+## Contact
+
+Questions, modernization projects, or feedback: [sr.rabiu@gmail.com](mailto:sr.rabiu@gmail.com).
