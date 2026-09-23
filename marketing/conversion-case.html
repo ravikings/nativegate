@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convert legacy Fortran and C++ to Python without rewriting — nativegate</title>
+  <meta name="description" content="The case for generated re-hosting over hand-written bindings: what nativegate produces, what you keep, what it refuses to do, and the worked third-party proof — netlib specfun and the petro deck, both with pinned numerical values.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/conversion-case.html">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Convert legacy Fortran and C++ to Python without rewriting">
+  <meta property="og:description" content="The phrase most guides mean by 'convert Fortran to Python' is a rewrite. That is the expensive option. Re-hosting keeps the validated code and generates everything around it.">
+  <meta property="og:url" content="https://nativegate.dev/conversion-case.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — make legacy Fortran and C++ AI-ready and microservice-ready">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "headline": "Convert legacy Fortran and C++ to Python without rewriting",
+    "datePublished": "2026-09-23",
+    "dateModified": "2026-09-23",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I convert a Fortran program to Python?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Most conversion guides describe a rewrite: translating every routine by hand into Python or C++. There is a second option — re-hosting. The original numerics keep running as compiled Fortran or C++, and the conversion work happens in the interfaces around them. nativegate generates that interface automatically: pybind11/f2py bindings, a CMake build, an installable Python package, tests, a FastAPI service, containers, and a numerical regression check that fails a rebuild if any value moves." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is wrong with translating Fortran to Python by hand?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Accuracy and validation. A translated routine is not the same code — it is a new implementation, and every translated numeric path is a new chance for a subtle difference (half-open loops, 1-based array origins, assumed-size arguments, COMMON-block state). If a regulator or a client ever signed off on the original numbers, the artifacts they signed are gone once translated. Re-hosting keeps the bit-exact numerics and regenerates the interface on demand." }
+      },
+      {
+        "@type": "Question",
+        "name": "What does nativegate generate?",
+        "acceptedAnswer": { "@type": "Answer", "text": "From an existing C++ header or Fortran deck, it generates pybind11 or f2py bindings, CMake, an installable wheel, a pytest suite, a FastAPI service exposing the same functions over HTTP, Docker/Kubernetes artifacts, and a numerical baseline (golden record) of what the compiled code returns. Everything except the native source and the golden tape is regenerable; upgrading the generator cannot silently change an answer." }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="index.html#how-it-works">How it works</a>
+        <a href="index.html#features">Features</a>
+        <a href="/blog/">Blog</a>
+        <a href="/enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr;</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <div class="section-label">Conversion</div>
+        <h1 class="post-title">Converting legacy Fortran and C++ to Python:
+        the case for generation over translation</h1>
+
+        <div class="post-body">
+          <h2>What "convert Fortran to Python" usually means</h2>
+          <p>A rewrite. Someone reads the deck and produces a Python file:
+          every loop, every COMMON block, every magic constant transcribed
+          into numpy. The reason this is the expensive plan is that a
+          validated numerical code is a <em>record</em> — what your
+          organization relies on is not merely the text of the routine, but
+          the artifact the auditors signed and the twenty years of
+          production runs behind it. A rewrite makes every consumer rebuild
+          that trust from zero, in a language where 1-based array origins,
+          assumed-size arguments and COMMON-block state are each their own
+          subtle-difference hazard. Re-hosting keeps the compiled numerics
+          and converts the interface around them instead.</p>
+
+          <table>
+            <tr><th>Approach</th><th>What it recovers</th><th>What it costs</th></tr>
+            <tr><td>Hand-rewrite into Python</td><td>none of the validated numerics</td><td>all regression work starts over; every translated loop is a new subtle-difference risk</td></tr>
+            <tr><td>Hand-written bindings</td><td>the numerics keep running</td><td>argument intent, array shapes and session lifecycle re-implemented per routine</td></tr>
+            <tr><td>Subprocess wrapper + stdout parsing</td><td>numerics and a rough call surface</td><td>no library, no schema, no tests; brittle at scale</td></tr>
+            <tr><td><strong>nativegate</strong></td><td>numerics unchanged plus generated bindings, tests, wheel, HTTP service, containers</td><td>the integration work you wanted anyway, generated once and pinned to source hashes</td></tr>
+          </table>
+
+          <h2>What nativegate does on day one</h2>
+          <p>
+            One generator handles a tree: you point
+            <code>ngate quickstart</code> at a header or a Fortran deck, and
+            in one command it produces a pip-installable wheel and its
+            compile artifacts. The same source drives a FastAPI service
+            (the wheel) and a Dockerfile; you edit nothing twice.
+          </p>
+
+          <pre><code>pip install "nativegate[clang,build]"
+ngate quickstart legacy/sim.f --name sim_api
+pip install services/sim_api/dist/*.whl</code></pre>
+
+          <p>Three minutes later, the same library is also an HTTP service:</p>
+
+          <pre><code>ngate serve sim_api
+curl -X POST "http://localhost:8000/solve?a=1&b=2"</code></pre>
+
+          <h2>The case, feature by feature</h2>
+
+          <h3>1. Handles 1990s-era sources unmodified</h3>
+          <p>
+            Fixed-form columns 6 and 73, INCLUDE decks, IMPLICIT typing,
+            COMMON blocks, netlib's CS/CD dual-dialect marking, statement
+            labels in the marked copy — all tested against real third-party
+            Fortran, with the dialect resolution and label handling that the
+            <a href="/blog/first-contact-netlib-specfun.html">netlib specfun
+            contact</a> produced,
+            <a href="https://github.com/ravikings/specfun-py">published as an
+            independently wrapped library</a>.
+          </p>
+
+          <h3>2. Equality you can pin a build to</h3>
+          <p>
+            Every generated service can record a numerical baseline
+            (<code>ngate golden record</code>): the return values of each
+            entry point, tolerance, and the SHA-256 of every native source
+            byte. <code>ngate golden verify</code> fails a rebuild that
+            moved a number, and CI fails when a hash moved. For the
+            specfun showcase, all 14 pinned entry points came back
+            unchanged when the bindings were regenerated from the pristine
+            downloads — that is the whole argument for generation over
+            translation, measured.
+          </p>
+
+          <h3>3. One workflow, two languages</h3>
+          <p>
+            The same CLI, yaml schema, test suite and golden harness cover
+            C++ (pybind11 through libclang) and Fortran (f2py). The team
+            learns one interface, not one per language.
+          </p>
+
+          <h3>4. It refuses rather than mis-types</h3>
+          <p>
+            What it cannot bind is recorded as a skip with the reason:
+            derived types it cannot flatten, callbacks (EXTERNAL dummies),
+            dialect files without a chosen half. The list is published
+            (DEFECTS.md), and every defect found in the wild is
+            regression-tested once fixed — the specfun and quadpack
+            contacts alone produced six of them.
+          </p>
+
+          <h3>5. A service, not just a wheel</h3>
+          <p>
+            The generated service ships optional API-key auth, a schema,
+            request logging, readiness/liveness probes with SIGTERM
+            draining, Kubernetes manifests and a reproducible, hash-locked
+            Docker build — the deployment half a "just load the .so"
+            wrapper leaves to you.
+          </p>
+
+          <h2>The case against hand-rolled wrappers</h2>
+          <p>
+            It is not that hand-written bindings are impossible — many teams
+            have one, and it works while the API stays small. The cost grows
+            with every new endpoint: array edges, intent, error flags,
+            session lifecycles, all redone per routine and re-verified by
+            nobody in particular. The
+            <a href="/blog/generated-bindings-vs-handwritten.html">generated
+            vs hand-written comparison</a> states the trade in measured
+            numbers rather than adjectives.
+          </p>
+
+          <h2>What nativegate does not do</h2>
+          <p>Stated plainly, because the narrowing helps you plan:</p>
+          <ul>
+            <li>It does not translate your Fortran to Python. The numerics
+              compile from the original source — that is the point and also
+              the limit.</li>
+            <li>Routines taking an <code>external f</code> callback are
+              refused for now, with a reason (QUADPACK-style integrators).
+              Scoped in the roadmap.</li>
+            <li>fparser2 refuses Hollerith-era syntax gfortran compiles
+              with a warning; such decks use the regex reader backend.</li>
+            <li>Fortran COMMON-block state means one native call at a time
+              per process — scale comes from more processes behind an
+              ingress, and the generated Kubernetes manifests are shaped
+              accordingly.</li>
+          </ul>
+
+          <h2>Where to look, without being asked to take our word for it</h2>
+          <ul>
+            <li><a href="https://github.com/ravikings/nativegate">The
+              generator</a>: source, test suite, DEFECTS.md and ROADMAP.md
+              published as-is.</li>
+            <li><code>pip install "nativegate[clang,build]"</code> — the
+              tool installs from PyPI today.</li>
+            <li><a href="https://github.com/ravikings/specfun-py">specfun-py</a>:
+              netlib specfun wrapped end to end from the unchanged Fortran,
+              values pinned in CI.</li>
+            <li><a href="/blog/">The blog</a>: what the tool does, what it
+              refuses, and the defects the third-party contacts found —
+              with the fix version listed for each.</li>
+          </ul>
+
+          <div class="post-cta">
+            <a class="btn primary" href="index.html#quickstart">Try it &rarr;</a>
+            <a class="btn" href="/enterprise/">The enterprise page</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

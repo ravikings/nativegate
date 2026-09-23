@@ -10,7 +10,12 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-<url>
+  <url>
+    <loc>https://nativegate.dev/conversion-case.html</loc>
+    <lastmod>2026-09-23</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://nativegate.dev/blog/</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
