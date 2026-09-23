@@ -121,8 +121,9 @@ documented external user, and a DOI exist.
 | Bing WMT | ☐ | | |
 | Show HN | ☐ | | |
 | punkpeye/awesome-mcp-servers (punkpeye) PR | ☑ — Glama listing confirmed, badge added 2026-09-22, checks green; awaiting maintainer merge | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
-| nativegate on PyPI | ☑ — published 2026-09-22 | 2026-09-22 | https://pypi.org/project/nativegate/ |
-| showcase: specfun-py | ☑ — netlib specfun wrapped by nativegate, CI golden-verified (ubuntu+macos); PyPI publish next | 2026-09-22 | https://github.com/ravikings/specfun-py |
+| nativegate on PyPI | ☑ — published 2026-09-22 (0.1.0; 0.1.1 on 2026-09-23 with the specfun readme fix) | 2026-09-22 | https://pypi.org/project/nativegate/ |
+| showcase: specfun-py | ☑ artifact live; PyPI publish pending user's one-time pypi.org claim + Trusted Publisher config, then re-cut as v1.0.2 | 2026-09-22 | https://github.com/ravikings/specfun-py |
+| awesome-fortran (rabbiabram) evidence update | ☑ commented 2026-09-23 with PyPI + specfun-py; no re-ping | 2026-09-23 | https://github.com/rabbiabram/awesome-fortran/pull/25#issuecomment-5794131182 |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
 | awesome-fortran (brandonhimpfen) PR | ☐ | 2026-09-19 | https://github.com/brandonhimpfen/awesome-fortran/pull/22 |
