@@ -805,6 +805,26 @@ class ServiceConfig:
                 "Run `ngate create-service` first."
             )
         data = yaml.safe_load(config_path.read_text()) or {}
+        # Unknown top-level keys are an error, not dead weight. A new
+        # nativegate.yaml key read by an older nativegate (the exact case
+        # this project shipped CI against: `dialect: cd` under a nativegate
+        # that pre-dated it) would otherwise vanish the same way a letter
+        # transposed in `dialete:` would — the service generates from an
+        # assumption the user never wrote.
+        known_keys = {
+            "name", "language", "expose", "parser", "clang", "libraries",
+            "include_paths", "api", "dialect",
+            "fortran",  # namespace for fortran.defines
+            # verification layer 3 keys
+            "state", "invariants", "ranges", "lattice",
+        }
+        unknown = sorted(set(data) - known_keys)
+        if unknown:
+            raise ConfigError(
+                f"{config_path}: unknown key(s) {', '.join(unknown)}. "
+                "Check the spelling against this nativegate version's supported "
+                "keys, or upgrade nativegate if the key is new."
+            )
         expose = _load_expose(data.get("expose"), config_path)
         clang_data = data.get("clang") or {}
         # `None` means "no restriction": `expose: all` or an empty `expose:`
