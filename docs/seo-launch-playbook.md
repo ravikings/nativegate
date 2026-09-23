@@ -121,6 +121,8 @@ documented external user, and a DOI exist.
 | Bing WMT | ☐ | | |
 | Show HN | ☐ | | |
 | punkpeye/awesome-mcp-servers (punkpeye) PR | ☑ — Glama listing confirmed, badge added 2026-09-22, checks green; awaiting maintainer merge | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
+| nativegate on PyPI | ☑ — published 2026-09-22 | 2026-09-22 | https://pypi.org/project/nativegate/ |
+| showcase: specfun-py | ☑ — netlib specfun wrapped by nativegate, CI golden-verified (ubuntu+macos); PyPI publish next | 2026-09-22 | https://github.com/ravikings/specfun-py |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
 | awesome-fortran (brandonhimpfen) PR | ☐ | 2026-09-19 | https://github.com/brandonhimpfen/awesome-fortran/pull/22 |

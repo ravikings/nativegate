@@ -1,5 +1,10 @@
 # nativegate — make legacy C++ and Fortran AI-ready and microservice-ready
 
+[![CI](https://github.com/ravikings/nativegate/actions/workflows/ci.yml/badge.svg)](https://github.com/ravikings/nativegate/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/nativegate)](https://pypi.org/project/nativegate/)
+[![Python](https://img.shields.io/pypi/pyversions/nativegate)](https://pypi.org/project/nativegate/)
+[![MCP server (Glama)](https://glama.ai/mcp/servers/ravikings/nativegate/badges/score.svg)](https://glama.ai/mcp/servers/ravikings/nativegate)
+
 Expose existing C++ and Fortran code to Python as deployable microservices —
 without hand-writing bindings, and without touching the numerics.
 
@@ -8,6 +13,8 @@ bindings, the CMake build, an installable Python package, a FastAPI service,
 smoke tests, a numerical regression baseline, and a Dockerfile.
 
 ```bash
+pip install "nativegate[clang,build]"   # from PyPI; needs cmake/ninja + a C/C++/Fortran toolchain for the build step
+
 ngate quickstart libraries/geometry/geometry.hpp --name demo --build
 pip install services/demo/dist/*.whl
 ```

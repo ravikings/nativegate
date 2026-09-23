@@ -499,6 +499,20 @@ user templates.
 
 ---
 
+## Found on first contact with a third-party codebase (netlib specfun, 2026-09-22)
+
+nativegate was run end to end against netlib specfun (Zhang & Jin) as an
+independent showcase (github.com/ravikings/specfun-py). Three genuine
+defects surfaced that the repo's own probe suites had not covered:
+
+| | Defect | Status |
+|---|---|---|
+| **D9** | **Service names are not sanitized as Python identifiers.** `create-service specfun-gamma` produces `from ._native.specfun-gamma import ...` — invalid syntax. The generated file fails nativegate's own `compile()` gate and is refused (good), but the tool should either reject dashes at scaffold time with a clear message or map them to `_`. Discovered on the first C++-example-free name in the wild. | **open** |
+| **D10** | **The netlib `CS`/`CD` dialect-marking idiom defeats both Fortran parsers.** Upstream comments *every* statement in both dialects (`CS REAL ...` / `CD DOUBLE PRECISION ...`). With both dialect lines present the fixed-form grammar sees a floating continuation with no statement and fparser2 refuses the whole file. The regex fallback accepts it but then finds "no subroutine/function declarations", because the FUNCTION statements are also dialect-marked. exit message points the user at `parser: regex`, which does not help here at all. A dialect-selector option (`dialect: cs|cd` — comment on one prefix, uncomment the other in place) would make an entire category of netlib sources bindable unchanged. Worked around in the showcase by a documented prefix transform (specfun-py PROVENANCE.md). | **open** |
+| **D11** | **Generated packaging does not survive `--force` + regeneration paths off-line: the INCLUDE-expansion directory (`native/_expanded`) is referenced by the generated CMake but is produced only by `generate`, so a packaging tree committed without it fails `pip install -e` with "no known rule to make it".** That is arguably correct (regenerate first), but the error surfaces in consumer CI as a broken ninja rule rather than a "run the generator first" message. Either commit the expansion or teach the CMake template to invoke expansion itself. | **open** |
+
+---
+
 ## Class D — tool-level and configuration
 
 ### D1. An empty `expose:` block means "expose everything" (C++ only) — **open**
