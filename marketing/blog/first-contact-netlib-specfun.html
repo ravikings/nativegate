@@ -163,13 +163,20 @@ CD    DOUBLE PRECISION FUNCTION DGAMMA(X)</code></pre>
             With both lines present, the fixed-form grammar sees a floating
             continuation with no statement. fparser2 refuses the whole
             file; the regex fallback accepts it and then finds no routine
-            to expose, because the FUNCTION statements are marked too. The
-            current workaround is a documented, mechanical prefix
-            transformation (uncomment CD, comment out CS) recorded in the
-            PROVENANCE file — one pass, no arithmetic or control flow
-            touched. The right fix is a dialect option at the parser level,
-            so a whole class of netlib sources binds unchanged. Tracked as
-            DEFECTS D10.
+            to expose, because the FUNCTION statements are marked too.
+            <strong>Since nativegate 0.1.3 this is solved, not worked
+            around</strong>: `dialect: cd` (or `cs`) in nativegate.yaml — or
+            `--dialect cd` on quickstart — resolves the marking into the
+            build copy, the chosen half live in place and the other half
+            commented, with the untouched netlib bytes staying under
+            native/ so the golden hashes still describe the upstream
+            source. One hole in the first implementation (dialect-marked
+            statement labels like <code>CD900 DGAMMA = RES</code>) was
+            caught by actually building specfun-py from the pristine
+            downloads and fixed in 0.1.5. The full loader is documented in
+            nativegate's
+            <a href="https://github.com/ravikings/nativegate/blob/main/tools/nativegate/docs/fortran-guide.md">
+            Fortran guide</a>.
           </p>
 
           <h3>3. Generated packaging assumed generate had run</h3>
