@@ -191,6 +191,31 @@ COMMON safety lands first. This is documented in `docs/production-readiness.md`.
 
 ### Open
 
+**3.5 — Fortran `external` callbacks (DEFECTS D14, netlib quadpack contact
+2026-09-23).** Exposing routines that take a procedure dummy (`external f` —
+QUADPACK's integrators, ODEPACK's right-hand sides) is unsupported today: the
+routine is refused with a reason rather than mis-typed (the 0.1.8 fix), which
+is honest but leaves a wide swathe of netlib's numerical core unbindable.
+f2py's own path requires per-argument callback directives
+(`!f2py intent(callback) f`) plus Python side function objects handed in as
+arguments, whose C signature f2py infers from a dummy declaration. Design
+sketch: declaration-aware callback IR (`FortranCallbackDef`), the same
+`intent(callback)`/`callexternal(f)` directives f2py read, and golden-record
+values captured with a Python-side integrand that double-checks against one
+written in Fortran. Blocked on nothing measurable; first brand-new argument
+shapes ever generated.
+
+**3.6 — fparser2 refuses Hollerith constants gfortran accepts (netlib quadpack,
+2026-09-23).** `call xerror(26habnormal return from  qng ,26,ier,0)`. gfortran
+compiles with a legacy-extension warning (exit 0); fparser2 refuses the whole
+file — the first measured counterexample to the "fparser2 is never stricter
+than gfortran" claim that justified the default flip (which held across 180
+files up until now). Options: a normalization pass rewrites `N*H...` into a
+`CHARACTER` equivalently-spelled argument list under `_expanded` (provenance
+risk; needs checking against xerror semantics), or `parser: regex` documented
+for those decks once D14 makes the regex reader safe. The parity claim's
+README now needs the caveat regardless.
+
 **2.1b — the lock is per-call, not per-session.** The lock is at
 `services/petro_api/python/petro_api/router.py:44`, and it holds only *within*
 one worker process: it does not make the service safe across workers, pods or

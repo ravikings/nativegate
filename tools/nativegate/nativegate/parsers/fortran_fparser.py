@@ -454,6 +454,13 @@ class _Declarations:
     derived_intents: dict[str, str] = field(default_factory=dict)
     # Names given a shape by a standalone DIMENSION statement.
     dimensioned: set[str] = field(default_factory=set)
+    # Names declared EXTERNAL — Fortran procedure dummies (callbacks). f2py
+    # binds these only with per-argument callback directives, which nativegate
+    # does not generate; typing one by its IMPLICIT fallback (`real`, because
+    # 'f' is not in the I-N band) produced a binding that builds, imports,
+    # passes its smoke test and hands Fortran garbage at call time. Recorded
+    # first contact: netlib quadpack's QNG/QAGSE (DEFECTS D14).
+    external: set[str] = field(default_factory=set)
 
 
 def _parse_declarations(spec_part) -> _Declarations:
@@ -467,6 +474,17 @@ def _parse_declarations(spec_part) -> _Declarations:
     for stmt in _walk(spec_part, _F.Dimension_Stmt):
         for item in stmt.items[0]:
             result.dimensioned.add(_name_of(item[0]).lower())
+
+    # EXTERNAL names are Fortran procedure dummies — callbacks. See the
+    # `external` field note above for why typing them is a silently wrong
+    # answer, and DEFECTS D14 for the netlib quadpack contact. External_Name
+    # nodes never appear as standalone tree entries, so read the names off
+    # External_Stmt.items: item 0 is the keyword, the last is the name list
+    # (the arity lines up across the fixed- and free-form grammars).
+    for stmt in _walk(spec_part, _F.External_Stmt):
+        name_list = stmt.items[-1]
+        for item in getattr(name_list, "items", ()):
+            result.external.add(_name_of(item).lower())
 
     for decl in _walk(spec_part, _F.Type_Declaration_Stmt):
         type_spec = decl.items[0]
@@ -698,17 +716,30 @@ def _resolve_parameters(
     declared: dict[str, Parameter],
     unbindable: dict[str, str],
     implicit_map: dict[str, str],
+    external_names: set[str] = frozenset(),
 ) -> list[Parameter]:
     """Type every dummy argument, or refuse the routine.
 
-    Three sources in decreasing authority: an explicit declaration, a
-    recognised-but-unbindable declaration (refuse), and IMPLICIT typing. There
-    is deliberately no fourth "assume float" step — the reason the reasons
-    below exist at all.
+    Four sources in decreasing authority: EXTERNAL declarations (refuse the
+    routine — callbacks have their own semantic and no generated binding),
+    an explicit declaration, a recognised-but-unbindable declaration
+    (refuse), and IMPLICIT typing. There is deliberately no fifth "assume
+    float" step — the reason the reasons below exist at all.
     """
     parameters: list[Parameter] = []
     for param_name in param_names:
         key = param_name.lower()
+        # EXTERNAL check ahead of every type lookup: a name in the external
+        # list is a procedure dummy, whatever it implicitly types as. 'f' is
+        # not in the I-N band, so the fallback it used to hit was real/float.
+        if key in external_names:
+            raise _RoutineSkipped(
+                f"argument '{param_name}' is declared EXTERNAL (a Fortran "
+                "procedure/callback). f2py binds callbacks only through per-"
+                "argument f2py directives, which the generator does not emit "
+                "yet — this routine is skipped as a whole rather than bound "
+                "with the callback mis-typed as a scalar."
+            )
         if key in declared:
             parameters.append(declared[key])
             continue
@@ -824,11 +855,11 @@ def _free_form_routine(
                 parameters.extend(flat_by_param[param])
             else:
                 parameters.extend(
-                    _resolve_parameters([param], declared, unbindable, implicit_map)
+                    _resolve_parameters([param], declared, unbindable, implicit_map, decls.external)
                 )
     else:
         parameters = _resolve_parameters(
-            param_names, declared, unbindable, implicit_map
+            param_names, declared, unbindable, implicit_map, decls.external
         )
 
     if is_subroutine:
@@ -987,8 +1018,26 @@ def _parse_fixed_form(path: Path, expose: ExposeConfig, include_paths: list[Path
         )
 
         parameters = []
+        external_refused = False
         for param_name in param_names:
             key = param_name.lower()
+            # Ahead of every type lookup: an EXTERNAL name is a procedure
+            # dummy whatever it implicitly types as (DEFECTS D14 — netlib
+            # quadpack QNG/QAGSE).
+            if key in decls.external:
+                module.skipped.append(
+                    SkippedSymbol(
+                        name,
+                        f"argument '{param_name}' is declared EXTERNAL (a "
+                        "Fortran procedure/callback). f2py binds callbacks "
+                        "only through per-argument f2py directives, which "
+                        "the generator does not emit yet — skipped as a "
+                        "whole rather than bound with the callback "
+                        "mis-typed as a scalar.",
+                    )
+                )
+                external_refused = True
+                break
             declaration = decls.declared.get(key)
             if declaration is not None:
                 py_type = declaration.type
@@ -1067,6 +1116,10 @@ def _parse_fixed_form(path: Path, expose: ExposeConfig, include_paths: list[Path
                 or fixed_form.implicit_type_of(name, implicit_map)
             )
             returns = map_fortran_type(base) if base else "float"
+
+        if external_refused:
+            # Recorded in module.skipped; nothing downstream may wrap it.
+            continue
 
         module.functions.append(
             FunctionDef(

@@ -299,6 +299,29 @@ def _parse_derived_declarations(body: str) -> dict[str, str]:
     return unbindable
 
 
+# EXTERNAL declarations name Fortran procedure dummies — callbacks. Stands
+# in the fixed-form `external f` shape AND the free-form `external :: f, g`
+# one. Collected so the routine that takes one is skipped with a reason
+# (both readers, identical text): typing it through the IMPLICIT fallback —
+# 'f' is real, since 'f' sits outside the I-N integer band — produced a
+# binding that builds, imports, smokes green and hands Fortran garbage at
+# call time. First contact: netlib quadpack QNG/QAGSE (DEFECTS D14).
+_EXTERNAL_RE = re.compile(
+    r"^[ \t]*external[ \t]*(?::[ \t]*)?([a-z][a-z0-9_, \t]*)$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _external_declared_names(body: str) -> set[str]:
+    out: set[str] = set()
+    for match in _EXTERNAL_RE.finditer(body):
+        for raw in match.group(1).split(","):
+            name = raw.strip().lower()
+            if name:
+                out.add(name)
+    return out
+
+
 def _parse_declarations(body: str) -> dict[str, Parameter]:
     """Map declared variable name -> Parameter, for every `type, attrs :: names` line in body."""
     declared: dict[str, Parameter] = {}
@@ -336,19 +359,34 @@ def _resolve_parameters(
     declared: dict[str, Parameter],
     unbindable: dict[str, str],
     implicit_map: dict[str, str],
+    external_names=None,
 ) -> list[Parameter]:
     """Type every dummy argument, or refuse the routine.
 
-    Three sources in decreasing authority: an explicit declaration, a
-    recognised-but-unbindable declaration (refuse), and IMPLICIT typing.
-    There is deliberately no fourth "assume float" step.
+    Four sources in decreasing authority: EXTERNAL declarations (refuse the
+    routine — a callback typed via the IMPLICIT fallback is a buildable,
+    importable, silently wrong binding; see DEFECTS D14 / netlib quadpack),
+    an explicit declaration, a recognised-but-unbindable declaration
+    (refuse), and IMPLICIT typing. There is deliberately no fifth "assume
+    float" step.
     """
+    external_names = external_names if external_names is not None else set()
     raw_params = match.group("params") or ""
     param_names = [p.strip() for p in raw_params.split(",") if p.strip()]
 
     parameters: list[Parameter] = []
     for param_name in param_names:
         key = param_name.lower()
+        # Ahead of every type lookup: an EXTERNAL name is a procedure dummy
+        # whatever it implicitly types as — see the note on _EXTERNAL_RE.
+        if key in (external_names or ()):
+            raise _RoutineSkipped(
+                f"argument '{param_name}' is declared EXTERNAL (a Fortran "
+                "procedure/callback). f2py binds callbacks only through per-"
+                "argument f2py directives, which the generator does not emit "
+                "yet — this routine is skipped as a whole rather than bound "
+                "with the callback mis-typed as a scalar."
+            )
         if key in declared:
             parameters.append(declared[key])
             continue
@@ -431,7 +469,9 @@ def _extract_function(
     declared = _parse_declarations(body)
     unbindable = _parse_derived_declarations(body)
 
-    parameters = _resolve_parameters(match, declared, unbindable, implicit_map)
+    parameters = _resolve_parameters(
+        match, declared, unbindable, implicit_map, _external_declared_names(body)
+    )
 
     result_name = (match.group("result") or name).lower()
     result_param = declared.get(result_name)
@@ -476,7 +516,9 @@ def _extract_subroutine(
     declared = _parse_declarations(body)
     unbindable = _parse_derived_declarations(body)
 
-    parameters = _resolve_parameters(match, declared, unbindable, implicit_map)
+    parameters = _resolve_parameters(
+        match, declared, unbindable, implicit_map, _external_declared_names(body)
+    )
 
     enclosing = _enclosing_fortran_module(source, match.start())
     fn = FunctionDef(
@@ -537,9 +579,32 @@ def _parse_fixed_form_source(
         # `STEP(DTIN, DTOUT, ICONV)` would return None.
         intents = fixed_form.infer_intents(routine, normalized)
 
+        # The fixed-form half has its own declaration scan (`find_routine` +
+        # `declared_types`), which never consulted the free-form extractors
+        # — so an `external f` (a Fortran procedure dummy) typed straight
+        # through the IMPLICIT fallback to `real`/float and produced a
+        # binding that builds, imports, passes its smoke test and hands
+        # Fortran garbage at call time. Found on netlib quadpack QNG/QAGSE
+        # (DEFECTS D14); refusal is the interpretation both backends share.
+        external_names = _external_declared_names(routine["body"])
         parameters = []
         for param_name in routine["params"]:
             key = param_name.lower()
+            # Ahead of every type lookup: an EXTERNAL name is a procedure
+            # dummy whatever it implicitly types as — see the note above.
+            if key in external_names:
+                module.skipped.append(
+                    SkippedSymbol(
+                        name,
+                        f"argument '{param_name}' is declared EXTERNAL (a "
+                        "Fortran procedure/callback). f2py binds callbacks "
+                        "only through per-argument f2py directives, which "
+                        "the generator does not emit yet — skipped as a "
+                        "whole rather than bound with the callback "
+                        "mis-typed as a scalar.",
+                    )
+                )
+                break
             base_type = routine["declared_types"].get(key) or fixed_form.implicit_type_of(
                 param_name, implicit_map
             )
@@ -601,6 +666,11 @@ def _parse_fixed_form_source(
                 name, implicit_map
             )
             returns = map_fortran_type(base) if base else "float"
+
+        # A routine whose whole binding was refused (external callback) has
+        # been recorded in module.skipped; nothing downstream may wrap it.
+        if any(s.name == name for s in module.skipped):
+            continue
 
         module.functions.append(
             FunctionDef(
