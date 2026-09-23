@@ -1259,7 +1259,11 @@ def _scaffold_service(name: str, language: str, force: bool) -> Path:
     (service_dir / "python" / name / "__init__.py").write_text(
         "# Run `ngate expose` then `ngate generate` to populate this package.\n"
     )
-    (service_dir / "pyproject.toml").write_text(pyproject_gen.generate_pyproject(name, language))
+    (service_dir / "pyproject.toml").write_text(
+        pyproject_gen.generate_pyproject(
+            name, language, has_readme=(service_dir / "README.md").exists()
+        )
+    )
     return service_dir
 
 
@@ -1298,7 +1302,11 @@ def _restore_scaffold(service_dir: Path, config: ServiceConfig) -> None:
     pyproject = service_dir / "pyproject.toml"
     if not pyproject.exists():
         pyproject.write_text(
-            pyproject_gen.generate_pyproject(config.name, config.language)
+            pyproject_gen.generate_pyproject(
+                config.name,
+                config.language,
+                has_readme=(service_dir / "README.md").exists(),
+            )
         )
         click.echo(f"Restored missing {pyproject}")
 

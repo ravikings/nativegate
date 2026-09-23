@@ -29,7 +29,8 @@ _DEPENDENCIES = {
 
 
 def generate_pyproject(
-    service_name: str, language: str, needs_numpy: bool = False
+    service_name: str, language: str, needs_numpy: bool = False,
+    has_readme: bool = False
 ) -> str:
     """The generated service's pyproject.toml.
 
@@ -38,12 +39,23 @@ def generate_pyproject(
     import. A C++ service with no such pointer does not get the dependency —
     declaring it unconditionally would put numpy in every image for the
     benefit of the services that do not use it.
+
+    `has_readme` is True when services/<name>/README.md exists on disk at
+    generate time. The `[project] readme` field then carries it, because a
+    wheel with no long_description is rejected by `twine check --strict`
+    (the whole project builds with that gate on) and lands on PyPI's
+    package page with the raw `text/x-rst` heading anyway. When the file
+    does not exist the field must stay out: setuptools refuses to build a
+    distribution whose declared readme is missing, and a service that has
+    never had a README should still build.
     """
     build_requires = _BUILD_REQUIRES.get(language, _BUILD_REQUIRES["cpp"])
     dependencies = _DEPENDENCIES.get(language, _DEPENDENCIES["cpp"])
     if needs_numpy and '"numpy"' not in dependencies:
         build_requires = build_requires.rstrip("]") + ', "numpy"]'
         dependencies = dependencies.rstrip("]") + ', "numpy"]'
+
+    readme_lines = 'readme = "README.md"\n' if has_readme else ""
 
     return f"""[build-system]
 requires = {build_requires}
@@ -52,7 +64,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "{service_name}"
 version = "1.0.0"
-requires-python = ">=3.10"
+{readme_lines}requires-python = ">=3.10"
 dependencies = {dependencies}
 
 [tool.scikit-build]
