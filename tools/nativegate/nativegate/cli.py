@@ -10,6 +10,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import click
@@ -513,12 +514,21 @@ def suggest(path: Path, parser: str, includes: tuple[str, ...], show_all: bool, 
     show_default=True,
     help="C++ only: language standard for the AST parse.",
 )
+@click.option(
+    "--dialect",
+    default="",
+    help="Fortran only: resolve netlib CS/CD dual-dialect marking "
+    "('cs' or 'cd') in a temporary copy before parsing. Mirrors "
+    "nativegate.yaml's `dialect:` so `ngate inspect` answers the same "
+    "questions about a marked source that `generate` will.",
+)
 def inspect(
     path: Path,
     functions: tuple[str, ...],
     parser: str,
     includes: tuple[str, ...],
     std: str,
+    dialect: str,
 ) -> None:
     """Parse a native source file and print the resulting IR."""
     lang = detect_language(path)
@@ -539,7 +549,24 @@ def inspect(
                 "Fortran sources need at least one --function <name> to target "
                 "(large legacy files are parsed one routine at a time)."
             )
-        module = fortran_parser.parse_source(path, ExposeConfig(functions=list(functions)))
+        inspect_path = path
+        chosen = resolve_dialect(dialect)
+        if chosen and is_dialect_marked(path.read_text()):
+            inspect_path = Path(tempfile.mkstemp(suffix=path.suffix)[1])
+            inspect_path.write_text(apply_dialect(read_source(path), chosen))
+        try:
+            module = fortran_parser.parse_source(
+                inspect_path, ExposeConfig(functions=list(functions))
+            )
+        except ValueError as exc:
+            hint = ""
+            if not chosen and is_dialect_marked(path.read_text()):
+                hint = (
+                    "\nThe file looks dialect-marked (CS/CD prefixes on both "
+                    "copies of every line). Pass --dialect cs or --dialect cd."
+                )
+            raise click.ClickException(f"{exc}{hint}") from exc
+
     else:
         raise click.ClickException(f"Unrecognized native source: {path} (detected language: {lang}).")
 

@@ -160,6 +160,47 @@ normalizes them before parsing: column-1 comments (`C`, `*`) stripped,
 continuation lines (non-blank column 6) joined onto the statement they
 continue, and columns 73+ discarded as punch-card sequence numbers.
 
+### netlib dual-dialect sources (`CS`/`CD`)
+
+Some netlib-era collections (specfun 2.5 is the canonical case) distribute
+their sources with *every statement commented twice*, one copy per machine
+precision, and ask the installer to comment one batch out by hand:
+
+```fortran
+CS    REAL FUNCTION GAMMA(X)
+CD    DOUBLE PRECISION FUNCTION DGAMMA(X)
+CS    REAL
+CD    DOUBLE PRECISION
+     1    C,CONV,EPS,...
+```
+
+That file is unreadable to every strict tool twice over: with neither
+prefix commented, the grammar sees a floating continuation with no
+statement (gfortran rejects it too), and the regex fallback finds no
+routine because the FUNCTION lines carry the marking as well. Statement
+labels are marked the same way (`CS900 GAMMA = RES` / `CD900 DGAMMA = ...`).
+
+nativegate makes the choice static. Set
+
+```yaml
+# nativegate.yaml
+dialect: cd
+```
+
+(or `--dialect cd` on quickstart / --dialect on inspect) and generate: the
+`CD` half becomes live code in place, the `CS` half becomes a comment,
+no column shifts anywhere, and the untouched netlib bytes stay under
+`native/` — which is what `golden.json` hashes, so the transform never
+infiltrates provenance. The resolved copy lives in `native/_expanded/`
+next to the other generated transforms. Inspect a marked file without
+committing to a dialect first with
+`ngate inspect <file> --function DGAMMA --dialect cd`. Forgetting the
+flag is caught: the failure says so and names the flag.
+
+Accepted end to end by the [specfun-py](https://github.com/ravikings/specfun-py)
+showcase: eleven upstream files, byte-identical to what netlib serves,
+resolved in CI; the previously recorded golden tape comes back unchanged.
+
 ### IMPLICIT typing
 
 F77 routines usually declare nothing about their arguments:

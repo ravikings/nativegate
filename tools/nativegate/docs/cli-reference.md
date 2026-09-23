@@ -55,6 +55,10 @@ ngate quickstart path/to/widget.hpp
 ngate quickstart path/to/mixer.f90 --build
 ```
 
+`--dialect cs|cd` resolves netlib-style dual-dialect Fortran in the same
+pass ([format guide](fortran-guide.md#netlib-dual-dialect-sources-cscd)); the
+setting is written to `nativegate.yaml` so later `generate` runs reproduce it.
+
 If you point it at a C++ header, it also looks for the `.cpp`/`.cc`/`.cxx`
 implementation files that define it and copies those in too — a header with
 declared-but-not-defined methods can't actually compile. Two layouts are
@@ -177,6 +181,16 @@ targets specific routines rather than scanning the whole file:
 ngate inspect services/reservoir/native/pressure.f90 \
   --function calculate_pressure --function normalize
 ```
+
+Fortran sources carrying netlib CS/CD dual-dialect marking (every statement
+commented in both dialects) need a dialect before the file parses at all
+— see [the format guide](fortran-guide.md#netlib-dual-dialect-sources-cscd):
+
+```bash
+ngate inspect gamma.f --function DGAMMA --dialect cd
+```
+
+Without `--dialect`, a marked file fails with a message that names the flag.
 
 ## `ngate expose <path>`
 
