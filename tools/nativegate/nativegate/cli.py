@@ -69,6 +69,7 @@ from .parsers import cpp as cpp_parser
 from .parsers.cpp_ast import ClangOptions
 from .parsers import fixed_form
 from .parsers import fortran as fortran_parser
+from .parsers.dialect import apply_dialect, is_dialect_marked, resolve_dialect
 
 SERVICES_DIR = "services"
 
@@ -244,7 +245,15 @@ def create_service(name: str, language: str, force: bool) -> None:
     help="Delete and recreate services/<name> if it already exists.",
 )
 @click.option("--build/--no-build", default=False, help="Also compile the extension after generating.")
-def quickstart(source: Path, name: str | None, force: bool, build: bool) -> None:
+@click.option(
+    "--dialect",
+    default="",
+    help="Select the live half of netlib-style dual-dialect sources "
+    "(CS/CD machine-precision marking): 'cs' or 'cd'. The resolved copy "
+    "goes to native/_expanded; the source under native/ is untouched. "
+    "Leave empty for sources that are not dialect-marked.",
+)
+def quickstart(source: Path, name: str | None, force: bool, build: bool, dialect: str) -> None:
     """One-shot: scaffold a service from a single C++/Fortran file, expose
     everything found in it, and generate the Python package — no manual
     nativegate.yaml editing.
@@ -310,10 +319,51 @@ def quickstart(source: Path, name: str | None, force: bool, build: bool) -> None
                         f"{service_dir / 'native'} and re-run `ngate generate {service_name}`."
                     )
         else:
-            routines = fortran_parser.list_routine_names(native_copy)
+            resolved = native_copy
+            try:
+                config.dialect = resolve_dialect(dialect)
+            except ValueError as exc:
+                tracker.fail("Copy native source")
+                raise click.ClickException(str(exc)) from exc
+            if config.dialect and is_dialect_marked(read_source(native_copy)):
+                resolved_dir = service_dir / "native" / "_expanded"
+                resolved_dir.mkdir(parents=True, exist_ok=True)
+                resolved = resolved_dir / native_copy.name
+                resolved.write_text(apply_dialect(read_source(native_copy), config.dialect))
+                tracker.log(
+                    f"dialect '{config.dialect}' selected for {native_copy.name} "
+                    f"-> {resolved} (native/ keeps the untouched upstream bytes)"
+                )
+            else:
+                config.dialect = ""
+            try:
+                routines = fortran_parser.list_routine_names(resolved)
+            except ValueError as exc:
+                # Why not pass the parser's message through untouched: for a
+                # netlib CS/CD dual-dialect deck the parser error ("floating
+                # continuation") is real but does not name the fix, which is
+                # one flag on this very command.
+                hint = ""
+                if not config.dialect and is_dialect_marked(read_source(native_copy)):
+                    hint = (
+                        "\nThis file looks dialect-marked (CS/CD prefix on both "
+                        "a single- and a double-precision copy of every line). "
+                        "Pass '--dialect cs' or '--dialect cd' to select the "
+                        "live half."
+                    )
+                tracker.fail("Copy native source")
+                raise click.ClickException(f"{exc}{hint}") from exc
             if not routines:
                 tracker.fail("Copy native source")
-                raise click.ClickException(f"No Fortran function/subroutine declarations found in {source}.")
+                hint = ""
+                if not config.dialect and is_dialect_marked(read_source(native_copy)):
+                    hint = (
+                        " (The source carries netlib CS/CD dual-dialect marking: "
+                        "pass --dialect cs or --dialect cd to select the live half.)"
+                    )
+                raise click.ClickException(
+                    f"No Fortran function/subroutine declarations found in {source}.{hint}"
+                )
             config.expose.functions = routines
             config.save(service_dir)
             tracker.log(f"Exposing Fortran routines: {', '.join(routines)}")
@@ -1719,6 +1769,35 @@ def _generate_fortran_service(service_dir: Path, config: ServiceConfig) -> None:
     if not sources:
         raise click.ClickException(f"No Fortran sources found under {service_dir / 'native'}.")
 
+    # netlib dual-dialect sources (CS/CD stamped on both halves' every line)
+    # are not parseable by anything that reads real Fortran — see
+    # DEFECTS D10. The selected dialect's lines become the code, the other
+    # becomes a comment, and the resolved copy lives in `_expanded` next
+    # to the other generated transforms. Done at the very front, so every
+    # reader of a source (routine discovery, the parse, intent inference,
+    # f2py) sees the same resolved file.
+    dialect_set = set()
+    if config.dialect:
+        chosen = [s for s in sources if is_dialect_marked(s.read_text())]
+        expanded_dir = service_dir / "native" / "_expanded"
+        expanded_dir.mkdir(parents=True, exist_ok=True)
+        replaced: list[Path] = []
+        for source in sources:
+            if source not in chosen:
+                replaced.append(source)
+                continue
+            target = expanded_dir / source.name
+            target.write_text(apply_dialect(read_source(source), config.dialect))
+            replaced.append(target)
+            dialect_set.add(target)
+        sources = replaced
+        if chosen:
+            click.echo(
+                f"Resolved dialect '{config.dialect}' in {len(chosen)} source(s) "
+                f"-> native/_expanded. The '{config.dialect}' half is now live; "
+                "the other half is commented. Originals under native/ are untouched."
+            )
+
     include_paths = [Path(p) for p in config.include_paths]
     for p in include_paths:
         if not p.is_dir():
@@ -1910,13 +1989,16 @@ def _generate_fortran_service(service_dir: Path, config: ServiceConfig) -> None:
         + kind_param_sources
         + shim_only_sources
     )
+    # Dialect-resolved copies live under _expanded by construction, so the
+    # referenced tree must be built even when nothing else needs rewriting.
+    rewritten_or_copied = bool(rewritten) or bool(library_sources) or bool(preprocessed_set) or bool(dialect_set)
     # A library source is always copied under the service, even when it needs
     # no rewriting: it lives outside native/, so referencing it as
     # `native/<name>` would name a file that is not there — and the Docker
     # build context is the service directory, so a path outside it could not be
     # COPYed in anyway.
     library_set = set(library_sources)
-    if rewritten or library_sources or preprocessed_set:
+    if rewritten_or_copied:
         expanded_dir = service_dir / "native" / "_expanded"
         expanded_dir.mkdir(parents=True, exist_ok=True)
         native_sources = []

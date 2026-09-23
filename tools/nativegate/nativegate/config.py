@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Union
 
 import yaml
 
+from .parsers.dialect import resolve_dialect
+
 if TYPE_CHECKING:
     from .ir import ModuleIR
 
@@ -783,6 +785,12 @@ class ServiceConfig:
     # the `_expanded` copy. Same reason clang.defines exists for C++: the
     # branches differ, and only the build knows which one is live.
     fortran_defines: list[str] = field(default_factory=list)
+    # Dialect selection for netlib-style dual-dialect sources ("cs" or
+    # "cd"), applied when a file is parsed AND before f2py compiles it.
+    # Empty means no source carries the marking; discriminating per-file
+    # is done by `is_dialect_marked`, so one value safely covers a mixed
+    # tree.
+    dialect: str = ""
     # `state:`/`invariants:`/`ranges:` — layer 3 declarations
     # (design-verification-layers.md §3.2-3.5). Optional: a service with no
     # invariants.json coverage simply has an empty VerificationConfig.
@@ -819,6 +827,7 @@ class ServiceConfig:
             ),
             libraries=list(data.get("libraries") or []),
             include_paths=list(data.get("include_paths") or []),
+            dialect=resolve_dialect(data.get("dialect")),
             api=_load_api(data.get("api"), config_path),
             fortran_defines=list((data.get("fortran") or {}).get("defines") or []),
             verification=_load_verification(data, config_path, known_functions),
@@ -853,6 +862,8 @@ class ServiceConfig:
             data["libraries"] = self.libraries
         if self.include_paths:
             data["include_paths"] = self.include_paths
+        if self.dialect:
+            data["dialect"] = self.dialect
         # Only written when it differs from the default, so an existing
         # nativegate.yaml does not grow a key that says nothing.
         if self.api.auth != "none":
