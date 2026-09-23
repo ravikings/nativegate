@@ -1,0 +1,47 @@
+name: Build distribution
+
+on:
+  workflow_call:
+    inputs:
+      retention-days:
+        type: number
+        default: 7
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/nativegate/pyproject.toml
+
+      - run: pip install build twine
+
+      # The package lives in tools/nativegate, not the repo root — this is a
+      # monorepo and the workspace root carries no pyproject.toml at all.
+      - name: Build sdist and wheel
+        working-directory: tools/nativegate
+        run: python -m build --sdist --wheel
+
+      # Catches metadata problems (bad readme rendering, missing fields)
+      # before an artifact can reach PyPI.
+      - name: Twine check
+        working-directory: tools/nativegate
+        run: twine check --strict dist/*
+
+      - name: Install the built wheel straight from dist/ and import it
+        # A wheel that installs but does not import is worse than a failed
+        # build — it fails at the consumer, not here.
+        run: |
+          pip install --no-deps tools/nativegate/dist/nativegate-*.whl
+          python -c "import nativegate; print(nativegate.__version__)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: tools/nativegate/dist/
+          retention-days: ${{ inputs.retention-days }}

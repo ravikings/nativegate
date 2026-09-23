@@ -99,6 +99,13 @@ PR #22 at brandonhimpfen/awesome-fortran was closed without merge. Do not
 re-submit without a change of substance; ask the maintainer what the
 objection was first.
 
+Maintainer feedback 2026-09-22: nativegate lacks demonstrable "maturity,
+independent adoption, recognition, ecosystem significance". Bare list
+submissions will keep failing for the same reason. Strategy moved to
+[significance-plan.md](significance-plan.md): pause further list
+submissions until PyPI publication, one upstream-accepted PR, one
+documented external user, and a DOI exist.
+
 ## 5. Directories (manual, one clean listing each — skip everything else)
 
 - AlternativeTo — as a "Fortran↔Python modernization tool"
@@ -113,7 +120,7 @@ objection was first.
 | GSC verify + sitemap | ☐ | | |
 | Bing WMT | ☐ | | |
 | Show HN | ☐ | | |
-| punkpeye/awesome-mcp-servers (punkpeye) PR | ☐ — blocked on Glama listing | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
+| punkpeye/awesome-mcp-servers (punkpeye) PR | ☑ — Glama listing confirmed, badge added 2026-09-22, checks green; awaiting maintainer merge | 2026-09-19 | https://github.com/punkpeye/awesome-mcp-servers/pull/14712 |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
 | awesome-fortran (brandonhimpfen) PR | ☐ | 2026-09-19 | https://github.com/brandonhimpfen/awesome-fortran/pull/22 |
