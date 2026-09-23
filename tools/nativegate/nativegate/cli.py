@@ -60,6 +60,7 @@ from .ir import (
     IRSchemaError,
     ModuleIR,
     NativeTypeError,
+    is_valid_python_name,
     module_from_dict,
     module_to_dict,
     validate as validate_ir,
@@ -1240,6 +1241,22 @@ def clean(name: str) -> None:
 
 def _scaffold_service(name: str, language: str, force: bool) -> Path:
     import shutil
+
+    # Reject before anything is written: the name becomes a Python package
+    # (services/<name>/python/<name>/), so `specfun-gamma` would fail at
+    # generate time with `from ._native.specfun-gamma import ...` — invalid
+    # syntax caught by the generated-file compile() gate, three commands
+    # and a wasted scaffold after the user typed the name. Saying so here
+    # costs nothing (DEFECTS D9, found on first contact with netlib
+    # specfun, where quickstart defaults the name to the file stem and
+    # `specfun-gamma` is the obvious thing to type).
+    if not is_valid_python_name(name):
+        raise click.ClickException(
+            f"Service name '{name}' is not usable: it becomes a Python package, "
+            "so it must be a valid identifier (letters, digits, underscores, "
+            "not starting with a digit, not a Python keyword). "
+            "Use underscores instead of dashes."
+        )
 
     service_dir = Path(SERVICES_DIR) / name
     if service_dir.exists():
