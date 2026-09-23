@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>First contact: wrapping netlib specfun end to end — nativegate</title>
+  <meta name="description" content="nativegate run on a third-party Fortran library it had never seen: what came out of the box, what it broke, and why a golden-record harness turned a 1996 collection into CI-verified Python.">
+  <link rel="alternate" type="application/rss+xml" title="nativegate blog" href="/blog/feed.xml">
+  <link rel="canonical" href="https://nativegate.dev/blog/first-contact-netlib-specfun.html">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d0f'/%3E%3Cpath d='M11 9 L5 16 L11 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 9 L27 16 L21 23' stroke='%237dd3fc' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%237dd3fc'/%3E%3C/svg%3E">
+
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="First contact: wrapping netlib specfun end to end">
+  <meta property="og:description" content="Point the generator at someone else's 1996 Fortran and see what holds. specfun wrapped end to end: regenerated bindings in CI on two OSes, 14 pinned values, three generator defects found and fixed.">
+  <meta property="og:url" content="https://nativegate.dev/blog/first-contact-netlib-specfun.html">
+  <meta property="og:image" content="https://nativegate.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="nativegate — make legacy Fortran and C++ AI-ready and microservice-ready">
+  <meta property="og:site_name" content="nativegate">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nativegate.dev/og.png">
+  <meta name="twitter:title" content="First contact: wrapping netlib specfun end to end">
+  <meta name="twitter:description" content="What holds and what breaks when a binding generator meets a foreign 1996 library.">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "First contact: wrapping netlib specfun end to end",
+    "datePublished": "2026-09-23",
+    "dateModified": "2026-09-23",
+    "author": { "@type": "Organization", "name": "nativegate", "url": "https://github.com/ravikings/nativegate" },
+    "publisher": { "@type": "Organization", "name": "nativegate", "url": "https://nativegate.dev/" },
+    "mainEntityOfPage": "https://nativegate.dev/blog/first-contact-netlib-specfun.html",
+    "description": "Point the generator at someone else's 1996 Fortran and see what holds. specfun wrapped end to end: regenerated bindings in CI on two OSes, 14 pinned values, three defects found and fixed."
+  }
+  </script>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="container">
+      <a class="wordmark" href="../index.html#top">
+        <svg class="logomark" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--bg-inset)" stroke="var(--line-strong)"/>
+          <path d="M11 9 L5 16 L11 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 9 L27 16 L21 23" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="16" r="2.2" fill="var(--accent)"/>
+        </svg>
+        nativegate
+      </a>
+      <nav>
+        <a href="../index.html#how-it-works">How it works</a>
+        <a href="../index.html#features">Features</a>
+        <a href="../blog/">Blog</a>
+        <a href="../enterprise/">Enterprise</a>
+        <a href="https://github.com/ravikings/nativegate" class="cta">View on GitHub &rarr;</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="post block" style="border-top:none; padding-top: var(--space-16);">
+      <div class="container post-container">
+        <a class="post-back" href="index.html">&larr; Blog</a>
+        <div class="section-label">Case study</div>
+        <h1 class="post-title">First contact: wrapping netlib specfun end to end</h1>
+        <p class="post-byline">Published <time datetime="2026-09-23">2026-09-23</time> · nativegate project</p>
+
+        <div class="post-body">
+          <p>
+            Until last week every nativegate worked example lived in its
+            own repo: the ~4,800-line petro library that ships with the
+            project. A showcase like that is the easy case — whoever
+            writes the binding generator and whoever owns the example
+            library share a repo, a CI setup, and an author's assumptions,
+            and neither party is ever really surprised. So the generator
+            was pointed at someone else's code: netlib
+            <code>specfun</code>, S. Zhang and J. Jin's 1996 Fortran
+            collection of special functions (gamma, digamma, Dawson's
+            integral, error functions, Bessel I0/I1/K0/K1), fetched
+            straight from netlib.
+          </p>
+
+          <p>
+            The artifact this produced is
+            <a href="https://github.com/ravikings/specfun-py">specfun-py</a>,
+            and it is not a demo: the repository carries the upstream
+            <code>.f</code> files, a COMMITTED golden tape pinning the
+            return values of all 14 entry points, generated CMake and
+            pytest, and CI on ubuntu and macOS. The claim of most interest
+            to people who re-host numerical code is specific, so write it
+            exactly below:
+          </p>
+
+          <ul>
+            <li>CI regenerates the bindings from the committed Fortran,
+              from scratch, on every push — on ubuntu and macOS — and runs
+              the generated pytest suite against the result.</li>
+            <li>The golden tape pins the return values of all 14 entry
+              points (rtol 1e-9, atol 1e-12), plus the SHA-256 of every
+              upstream source file. A rebuild that moves any number, or an
+              edit that touches any byte, fails the build.</li>
+          </ul>
+
+          <h2>Actual numbers</h2>
+          <p>
+            erf, checked independently against the CPython standard library
+            itself and matching bitwise over the pinned point, is the
+            cleanest single indicator:
+          </p>
+
+          <pre><code>DERF(1.0)  = 0.8427007929497148   math.erf(1.0) = 0.8427007929497148
+PSI(1.0)   = -0.5772156649015329  (negated Euler–Mascheroni, 16 digits)
+DGAMMA(0.5)= 1.772453850905516    sqrt(pi)      = 1.7724538509055159
+BESK0(1.0) = 0.4210244382407083   known value:  0.4210244382407083
+DAW(1.0)   = 0.5380795069127684   known value:  0.5380795069127685
+EI(1.0)    = 1.8951178163559368   known value:  1.8951178163559368</code></pre>
+
+          <p>
+            Thirty-year-old code agreeing with references to sixteen
+            digits, with no Fortran written or edited here except one
+            dialect choice, documented in
+            <a href="https://github.com/ravikings/specfun-py/blob/main/PROVENANCE.md">
+            PROVENANCE.md</a>. erf is the cleanest single indicator: the
+            check above is against CPython's own stdlib, not a re-paste of
+            the same formula.
+          </p>
+
+          <h2>What broke — and why this matters</h2>
+          <p>
+            Three failures were produced by this contact, none of them
+            invented; each is a contract hole the in-repo test suite never
+            covered:
+          </p>
+
+          <h3>1. Service names that are not Python module names</h3>
+          <p>
+            <code>ngate quickstart gamma.f --name specfun-gamma</code>
+            scaffolded, generated, and produced
+            <code>from ._native.specfun-gamma import …</code> — invalid
+            Python. The compile-step gate in the generator that checks
+            generated code did refuse to write it, but three commands and a
+            scaffold directory later. The scaffold commands now reject the
+            name immediately, with the reason on the first line. This is a
+            bug everyone hits on their first try, which is exactly the
+            argument for third-party contact.
+          </p>
+
+          <h3>2. The CS/CD dialect trick</h3>
+          <p>
+            Netlib sources from this era tag machine precision by
+            commenting every line in both dialects and asking the installer
+            to comment out one:
+          </p>
+
+          <pre><code>CS    REAL FUNCTION GAMMA(X)
+CD    DOUBLE PRECISION FUNCTION DGAMMA(X)</code></pre>
+
+          <p>
+            With both lines present, the fixed-form grammar sees a floating
+            continuation with no statement. fparser2 refuses the whole
+            file; the regex fallback accepts it and then finds no routine
+            to expose, because the FUNCTION statements are marked too. The
+            current workaround is a documented, mechanical prefix
+            transformation (uncomment CD, comment out CS) recorded in the
+            PROVENANCE file — one pass, no arithmetic or control flow
+            touched. The right fix is a dialect option at the parser level,
+            so a whole class of netlib sources binds unchanged. Tracked as
+            DEFECTS D10.
+          </p>
+
+          <h3>3. Generated packaging assumed generate had run</h3>
+          <p>
+            Every commit of a service tree that never ran <code>generate</code>
+            breaks its own CMake reference to the INCLUDE-expansion
+            directory and fails with "no known rule to make it". The
+            consumer-side error was not even in the output nativegate owns.
+            Workaround documented; a template-level fix is tracked (DEFECTS
+            D11).
+          </p>
+
+          <h2>Why the golden tape is the load-bearing part</h2>
+          <p>
+            Four different stages stand between source and wheel: parse,
+            expand, bind, build. Each one can be wrong in a way that ships
+            a module that imports cleanly and answers with different
+            numbers. Nothing that ships with a typical binding generator
+            catches that, because the failure is invisible to import-time
+            checks. The golden record is the counterweight: 14 entry
+            points, tolerances, and a SHA-256 of every source byte. It
+            costs one <code>golden record</code> command and one CI job,
+            and it is what let us tell the three upstream failures apart
+            from "probably fine" with no Fortran reading on our part.
+          </p>
+
+          <div class="post-cta">
+            <a class="btn primary" href="https://github.com/ravikings/specfun-py">The showcase repo &rarr;</a>
+            <a class="btn" href="generated-bindings-vs-handwritten.html">Next: generated vs hand-written bindings</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span>nativegate is open source. Every action is a plain <code>ngate</code> CLI command.</span>
+      <nav>
+        <a href="/blog/feed.xml">RSS</a>
+        <a href="https://github.com/ravikings/nativegate">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

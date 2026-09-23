@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://nativegate.dev/blog/feed.xml" rel="self" type="application/rss+xml"/>
     <item>
+      <title>First contact: wrapping netlib specfun end to end</title>
+      <link>https://nativegate.dev/blog/first-contact-netlib-specfun.html</link>
+      <guid isPermaLink="true">https://nativegate.dev/blog/first-contact-netlib-specfun.html</guid>
+      <pubDate>Wed, 23 Sep 2026 00:00:00 GMT</pubDate>
+      <description>nativegate run on a third-party codebase: netlib specfun regenerated in CI on two OSes, 14 golden values pinned, three generator defects found and fixed.</description>
+    </item>
+    <item>
       <title>Exposing petroleum engineering models through Python</title>
       <link>https://nativegate.dev/blog/exposing-petroleum-models-through-python.html</link>
       <guid isPermaLink="true">https://nativegate.dev/blog/exposing-petroleum-models-through-python.html</guid>

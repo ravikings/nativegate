@@ -16,6 +16,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://nativegate.dev/blog/first-contact-netlib-specfun.html</loc>
+    <lastmod>2026-09-23</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://nativegate.dev/blog/generated-bindings-vs-handwritten.html</loc>
     <lastmod>2026-08-13</lastmod>
     <priority>0.6</priority>
