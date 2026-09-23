@@ -45,8 +45,40 @@ CD    DOUBLE PRECISION
      1    C,CONV,EPS
       DGAMMA = 24.0D0
       RETURN
+C the labelled assignment is dialect-marked as well: label in cols 1-5,
+C prefix occupying cols 1-2, so the 9 lands in column 3 — still inside
+C the label field (columns 1-5) after two blanks are substituted.
+900   DGAMMA = 24.0D0
+      RETURN
       END
 """)
+
+DUAL_WITH_MARKED_LABEL = textwrap.dedent("""\
+CD    DOUBLE PRECISION FUNCTION DGAMMA(X)
+CS    REAL FUNCTION GAMMA(X)
+      GO TO 900
+CD900 DGAMMA = 24.0D0
+CS900 GAMMA = 24.0E0
+      RETURN
+900   CONTINUE
+      RETURN
+      END
+""")
+
+
+def test_apply_dialect_marks_statement_labels_too():
+    """`CD900 DGAMMA = ...` is the line that exposed the strict space-lookahead
+    regex: labels start at column 1 and the prefix replaces its first two
+    characters, so the following character is a digit, not a space. A
+    space-lookahead regex would leave the label line inert and the resolved
+    file compiles with "label 900 referenced but never defined"."""
+    out = apply_dialect(DUAL_WITH_MARKED_LABEL, "cd")
+    lines = out.splitlines()
+    # label survives in the label field (digits starting column 3 is legal)
+    assert "  900 DGAMMA = 24.0D0" in lines
+    # the CS half is commented, label included
+    assert "C 900 GAMMA = 24.0E0" in lines
+    assert "C     REAL FUNCTION GAMMA(X)" in lines
 
 
 def test_apply_dialect_selects_cd():

@@ -41,7 +41,15 @@ import re
 
 DIALECT_CHOICES = ("cs", "cd")
 
-_PREFIX_RE = re.compile(r"^(CS|CD)(?=[ \t])", re.IGNORECASE | re.MULTILINE)
+# Statement labels are dialect-marked too ("CD900 DGAMMA = RES"), so no
+# space lookahead: any line starting with CS/CD is prefix-marked, with a
+# following space, tab, digit or line end allowed out to avoid tripping
+# on prose comments like "CSIMPLER". A live statement never starts with
+# literal letters in column 1 — the statement field begins in column 7 —
+# so there is no legitimate Fortran that begins "CS"/"CD" here. A comment
+# that merely starts with those letters is, at worst, re-marked; the
+# only real hazard would be more labels lost to a stricter pattern.
+_PREFIX_RE = re.compile(r"^(CS|CD)(?=[ \t\n]|\d|$)", re.IGNORECASE | re.MULTILINE)
 
 
 def resolve_dialect(raw: str | None) -> str:
