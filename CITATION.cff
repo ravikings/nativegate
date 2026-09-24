@@ -1,0 +1,32 @@
+cf-version: 1.2.0
+message: >-
+  If you use nativegate, please cite it using the
+  metadata of the Zenodo record linked below, or this citation.
+title: nativegate: make legacy C++/C/Fortran AI-ready and microservice-ready
+authors:
+  - given-names: Abdul
+    family-names: Rabiu
+    email: sr.rabiu@gmail.com
+    orcid: 'https://github.com/ravikings'
+version: 0.1.9
+date-released: '2026-09-23'
+license: Apache-2.0
+repository-code: 'https://github.com/ravikings/nativegate'
+url: 'https://nativegate.dev'
+abstract: >-
+  A code generator for the C++/Fortran-to-Python boundary: from an
+  unmodified legacy deck or header it produces f2py/pybind11 bindings,
+  a CMake build, an installable wheel, tests, a FastAPI service,
+  Docker/Kubernetes artifacts, and a numerical golden-record
+  regression harness that pins the compiled code's return values.
+keywords:
+  - fortran
+  - legacy-code
+  - python-bindings
+  - mcp
+  - scientific-computing
+  - modernization
+identifiers:
+  - description: 'Concept DOI, covers all released versions'
+    type: doi
+    value: '10.5281/zenodo.22929352'

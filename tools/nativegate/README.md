@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/ravikings/nativegate/actions/workflows/ci.yml/badge.svg)](https://github.com/ravikings/nativegate/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/nativegate)](https://pypi.org/project/nativegate/)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22929352-blue)](https://doi.org/10.5281/zenodo.22929352)
 [![Python](https://img.shields.io/pypi/pyversions/nativegate)](https://pypi.org/project/nativegate/)
 [![MCP server (Glama)](https://glama.ai/mcp/servers/ravikings/nativegate/badges/score.svg)](https://glama.ai/mcp/servers/ravikings/nativegate)
 

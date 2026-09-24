@@ -1,5 +1,12 @@
 # nativegate — make legacy Fortran and C++ AI-ready and microservice-ready
 
+[![CI](https://github.com/ravikings/nativegate/actions/workflows/ci.yml/badge.svg)](https://github.com/ravikings/nativegate/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/nativegate)](https://pypi.org/project/nativegate/)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22929352-blue)](https://doi.org/10.5281/zenodo.22929352)
+[![MCP server (Glama)](https://glama.ai/mcp/servers/ravikings/nativegate/badges/score.svg)](https://glama.ai/mcp/servers/ravikings/nativegate)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Code of Conduct](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
 Decades-old engineering code — 1990s C++ over FORTRAN 77 — turned into an
 MCP server, a REST API and a container that AI agents and modern systems can
 call today, without rewriting it and without hand-writing
