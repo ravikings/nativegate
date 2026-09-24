@@ -244,3 +244,7 @@ Before running any of this for a workload that matters, read
 ## Contact
 
 Questions, modernization projects, or feedback: [sr.rabiu@gmail.com](mailto:sr.rabiu@gmail.com).
+
+Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md). All participation in this
+project's spaces is covered by the
+[Code of Conduct](CODE_OF_CONDUCT.md); reports go to the contact above.

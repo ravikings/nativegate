@@ -519,3 +519,10 @@ mapping. Each refusal is printed at `generate` time with its reason, and the
 generated service publishes them at `GET /_unexposed` so they stay visible to
 whoever is calling the API. An empty mapping there means this build refused
 nothing; a 404 means the service predates the route and cannot tell you.
+
+## Community
+
+Contributing: see the repository's [CONTRIBUTING.md](../../CONTRIBUTING.md).
+Participation in this project's spaces is covered by the
+[Code of Conduct](../../CODE_OF_CONDUCT.md); reports go to
+sr.rabiu@gmail.com.
