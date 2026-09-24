@@ -127,7 +127,7 @@ documented external user, and a DOI exist.
 | quadpack probe + D14 fix | ☑ external/callback dummies refused, not mis-typed (0.1.8); D15 Hollerith-vs-gfortran scoped; callback support ROADMAP 3.5 | 2026-09-23 | docs/significance-plan.md Phase 2 evidence |
 | D15 Hollerith fix | ☑ front-door resolution, QUADPACK parses under default backend (0.1.9); all contacted netlib idioms now handled or refused honestly | 2026-09-23 | docs/significance-plan.md Phase 2 evidence |
 | Zenodo DOI | ☑ concept DOI 10.5281/zenodo.22929352 archived (v0.1.9), CITATION.cff + badges + site assert | 2026-09-23 | https://doi.org/10.5281/zenodo.22929352 |
-| specfun-py v1.0.2 publish | ☐ awaiting the one-time PyPI 'pending publisher' click, then I re-cut the version | 2026-09-23 | https://github.com/ravikings/specfun-py |
+| specfun-py on PyPI | ☑ PUBLISHED 1.0.8 — manylinux 2-28 (auditwheel-vendored libgfortran) + macOS arm64 wheel + sdist; pip install specfun returns the golden values | 2026-09-24 | https://pypi.org/project/specfun/ |
 | awesome-fortran (rabbiabram) evidence update | ☑ commented 2026-09-23 with PyPI + specfun-py; no re-ping | 2026-09-23 | https://github.com/rabbiabram/awesome-fortran/pull/25#issuecomment-5794131182 |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
