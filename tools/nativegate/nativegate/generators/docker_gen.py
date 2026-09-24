@@ -419,8 +419,8 @@ _SERIAL_NAMESPACE = uuid.UUID("6ba7b811-9dad-11d1-80b4-00c04fd430c8")  # RFC 412
 # the SBOM should record what the generated pyproject actually declares, and
 # a silent drift between the two is something a reviewer should see as a diff.
 _LANGUAGE_RUNTIME_PYTHON_DEPS = {
-    "cpp": ["fastapi", "uvicorn", "gunicorn", "uvicorn-worker"],
-    "fortran": ["fastapi", "uvicorn", "gunicorn", "uvicorn-worker", "numpy"],
+    "cpp": ["fastapi", "uvicorn", "gunicorn", "uvicorn-worker", "fastmcp"],
+    "fortran": ["fastapi", "uvicorn", "gunicorn", "uvicorn-worker", "fastmcp", "numpy"],
 }
 
 # Files the SBOM treats as "native sources compiled in". A wheel wrapping a

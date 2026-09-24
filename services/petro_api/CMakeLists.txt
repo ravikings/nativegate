@@ -20,6 +20,27 @@ set(F2PY_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/native/_expanded/wellib.f
 )
 
+# Say the fix, not the symptom: when this tree is consumed without
+# `ngate generate` having run (a packaging commit that ships the service
+# tree without native/_expanded), ninja would otherwise die mid-configure
+# with "no known rule to make it", which hides the remedy one exception
+# down a build log. Confirmed in the wild as DEFECTS D11, via
+# ravikings/specfun-py's first CI run.
+foreach(f2py_source IN LISTS F2PY_SOURCES)
+    if(NOT EXISTS "${f2py_source}")
+        message(FATAL_ERROR
+            "Missing build input: ${f2py_source}
+"
+            "nativegate generates this file when it resolves INCLUDE decks, "
+            "dialect marking and intent directives. Run:
+"
+            "    ngate generate petro_api
+"
+            "from this service directory (or the repo root), then build again."
+        )
+    endif()
+endforeach()
+
 set(F2PY_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/petro_api${PY_EXT_SUFFIX}")
 
 # f2py's meson backend picks tempfile.mkdtemp() for its build directory

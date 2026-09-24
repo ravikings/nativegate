@@ -18,8 +18,14 @@ WHY IT RESOLVES FOR THE IMAGE, NOT FOR THIS MACHINE
 The lock is consumed inside `python:3.12-slim` on Linux. Resolving with the
 local interpreter would pin macOS wheels, or wheels for whatever Python the
 developer happens to run, and the build would fail — or worse, succeed with a
-different set. So the resolution is done with pip's cross-environment flags:
-`--python-version 3.12`, `--only-binary=:all:`, and an explicit platform.
+different set. Worse, pip evaluates environment markers with the interpreter
+it runs under, and has no flag that overrides them: keyring declares
+SecretStorage only for sys_platform == 'linux', so a lock resolved anywhere
+else misses it, and the image's `--require-hashes` install fails. So the
+resolution itself runs inside the pinned base image (`docker run`), where the
+markers evaluate against the environment the lock is consumed in; the wheel
+choice per architecture stays controlled by pip's --platform/--python-version
+flags. Docker becomes a tool `ngate lock` requires, alongside pip.
 
 BOTH ARCHITECTURES, IN ONE FILE
 
@@ -40,7 +46,6 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -85,32 +90,42 @@ class LockedPackage:
 def _resolve(
     requirements: list[str], platform: list[str], pip: list[str]
 ) -> dict[str, LockedPackage]:
-    """One cross-environment pip resolution, as {normalised name: package}.
+    """One pip resolution FOR THE IMAGE, as {normalised name: package}.
 
     `platform` is every compatible tag for ONE architecture; pip takes the set
-    and picks whichever a project publishes.
+    and picks whichever a project publishes. The resolution runs inside the
+    pinned base image via `docker run` — pip has no flag that overrides
+    environment markers, which it evaluates with the interpreter it runs
+    under. keyring for example declares SecretStorage only for
+    sys_platform == 'linux': a lock resolved on a host of any other platform
+    silently drops it, and the image's `--require-hashes` install then dies on
+    the unpinned dependency. Inside the image, sys_platform, os_name and the
+    interpreter version are the ones the lock is actually consumed against;
+    the wheel choice itself stays under cross-environment control through
+    --python-version and the --platform tag set.
+
+    The container is left in the daemon's default architecture: it exists only
+    to evaluate metadata, and the native wheel set for each architecture is
+    selected by pip's own tag flags below, so a Rosetta-emulated run would buy
+    nothing at measured cost.
     """
-    # pip requires a target when resolving for a foreign platform; nothing is
-    # written, because --dry-run. It still has to be a path pip can create, so
-    # take one from the OS rather than hardcoding /tmp — that is not a
-    # writable location on Windows.
-    with tempfile.TemporaryDirectory(prefix="nativegate-lock-") as dry_run_target:
-        command = [
-            *pip,
-            "install",
-            "--dry-run",
-            "--quiet",
-            "--report",
-            "-",
-            "--only-binary=:all:",
-            "--python-version",
-            LOCK_PYTHON_VERSION,
-            *[arg for tag in platform for arg in ("--platform", tag)],
-            "--target",
-            dry_run_target,
-            *requirements,
-        ]
-        result = subprocess.run(command, capture_output=True, text=True)
+    from .generators import docker_gen
+
+    command = [
+        "docker", "run", "--rm",
+        f"{docker_gen.BASE_IMAGE}@{docker_gen.BASE_IMAGE_DIGEST}",
+        "python", "-m", "pip", "install",
+        "--dry-run",
+        "--quiet",
+        "--report", "-",
+        "--only-binary=:all:",
+        "--no-cache-dir",
+        "--python-version",
+        LOCK_PYTHON_VERSION,
+        *[arg for tag in platform for arg in ("--platform", tag)],
+        *requirements,
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         raise LockError(
             f"pip could not resolve {' '.join(requirements)} for "

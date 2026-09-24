@@ -1,0 +1,38 @@
+# Mirrors .gitignore for `docker build` runs from the repo root. The compose
+# console build also uses this context, so only reproducible scratch is
+# excluded here — never a needed source tree.
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+.DS_Store
+.git/
+.github/
+*.mod
+*.smod
+*.o
+*.so
+*.dylib
+*.pyd
+*.whl
+_skbuild/
+wheelhouse/
+# Build scratch, per-service: nativegate/meson build trees whose build.ninja
+# records the meson binary path of the machine that LAST built here, which a
+# fresh image cannot execute (the 127 exit that ends the wheel build).
+.nativegate/
+**/.nativegate/
+.f2py_f2cmap
+site/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+console/data/
+node_modules/
