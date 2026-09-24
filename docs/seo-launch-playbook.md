@@ -125,6 +125,7 @@ documented external user, and a DOI exist.
 | showcase: specfun-py | ☑ CI green on pristine netlib bytes via nativegate dialect: cd (0.1.3-0.1.6 loop); PyPI publish pending the user's one-time pypi.org claim + Trusted Publisher, then re-cut as v1.0.2 | 2026-09-23 | https://github.com/ravikings/specfun-py |
 | nativegate defect loop (D9-D11) | ☑ all three specfun-contact defects fixed and released: 0.1.2 (D9), 0.1.5 (D10 labels), 0.1.6 (D11 CMake guard); config unknown-key errors in 0.1.4 | 2026-09-23 | docs/significance-plan.md Phase 2 evidence |
 | quadpack probe + D14 fix | ☑ external/callback dummies refused, not mis-typed (0.1.8); D15 Hollerith-vs-gfortran scoped; callback support ROADMAP 3.5 | 2026-09-23 | docs/significance-plan.md Phase 2 evidence |
+| D15 Hollerith fix | ☑ front-door resolution, QUADPACK parses under default backend (0.1.9); all contacted netlib idioms now handled or refused honestly | 2026-09-23 | docs/significance-plan.md Phase 2 evidence |
 | awesome-fortran (rabbiabram) evidence update | ☑ commented 2026-09-23 with PyPI + specfun-py; no re-ping | 2026-09-23 | https://github.com/rabbiabram/awesome-fortran/pull/25#issuecomment-5794131182 |
 | awesome-mcp-servers (appcypher) PR | ☐ (manual click) | | branch pushed to fork; API denies creation |
 | awesome-fortran (rabbiabram) PR | ☐ | 2026-09-19 | https://github.com/rabbiabram/awesome-fortran/pull/25 |
