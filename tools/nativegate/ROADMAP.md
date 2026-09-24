@@ -205,8 +205,11 @@ values captured with a Python-side integrand that double-checks against one
 written in Fortran. Blocked on nothing measurable; first brand-new argument
 shapes ever generated.
 
-**3.6 — fparser2 refuses Hollerith constants gfortran accepts (netlib quadpack,
-2026-09-23).** `call xerror(26habnormal return from  qng ,26,ier,0)`. gfortran
+**3.6 — Hollerith landing — DONE (0.1.9).** The front door resolves them; see
+DEFECTS D15. What keeps 3.6 open is breadth: further netlib idiom classes
+(xerror conventions, `&` column-6 continuation artefacts, arithmetic-statement
+functions in COMMON) would join the same pass rather than grow new passes.
+Original problem statement it answered: `call xerror(26habnormal return from  qng ,26,ier,0)`. gfortran
 compiles with a legacy-extension warning (exit 0); fparser2 refuses the whole
 file — the first measured counterexample to the "fparser2 is never stricter
 than gfortran" claim that justified the default flip (which held across 180

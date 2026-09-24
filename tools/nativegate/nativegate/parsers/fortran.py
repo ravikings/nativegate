@@ -65,10 +65,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import tempfile
 
 from ..config import ExposeConfig
 from ..ir import ModuleIR
 from . import fortran_fparser, fortran_regex
+from . import hollerith
 
 # Re-exported so callers that reach for the free-form continuation joiner (the
 # CLI's source-rewriting paths, and a good number of tests) keep working after
@@ -137,6 +139,31 @@ def backend_description(backend: str | None = None) -> str:
     )
 
 
+def _hollerith_resolved(path: Path) -> Path | None:
+    """A temp copy of `path` with Hollerith constants resolved, or None.
+
+    fparser2 refuses Hollerith constants gfortran compiles with a warning —
+    the one measured counterexample to the parity rule that made fparser2
+    the default (DEFECTS D15, netlib quadpack). The file gfortran accepts
+    is the file that should parse, so the front door resolves the constants
+    into their standard quoted spelling and reads that copy instead. The
+    copy is attributed back to the original path, so source-file references
+    and doc-comment line spans keep pointing at the real file.
+    """
+    raw = path.read_text()
+    if not hollerith.is_hollerith(raw):
+        return None
+    resolved, _ = hollerith.resolve_hollerith(raw)
+    handle, name = tempfile.mkstemp(suffix=path.suffix)
+    Path(name).write_text(resolved)
+    # mkstemp exposes an int fd; close it — Path.write_text already used
+    # a second open, and the raw descriptor must not leak.
+    import os
+
+    os.close(handle)
+    return Path(name)
+
+
 def parse_source(
     path: Path,
     expose: ExposeConfig,
@@ -146,6 +173,15 @@ def parse_source(
 ) -> ModuleIR:
     """Parse one Fortran source into a ModuleIR using the selected backend."""
     if resolve_backend(backend) == "fparser2":
+        resolved = _hollerith_resolved(path)
+        if resolved is not None:
+            module = fortran_fparser.parse_source(resolved, expose, include_paths)
+            # The temp copy must not leak into user-visible IR: same name,
+            # same source file, only the text differs (D15).
+            module.name = path.stem
+            module.source_file = str(path)
+            resolved.unlink(missing_ok=True)
+            return module
         return fortran_fparser.parse_source(path, expose, include_paths)
     return fortran_regex.parse_source(path, expose, include_paths)
 
@@ -153,5 +189,11 @@ def parse_source(
 def list_routine_names(path: Path, *, backend: str | None = None) -> list[str]:
     """Every function/subroutine name in the file, in source order."""
     if resolve_backend(backend) == "fparser2":
+        resolved = _hollerith_resolved(path)
+        if resolved is not None:
+            try:
+                return fortran_fparser.list_routine_names(resolved)
+            finally:
+                resolved.unlink(missing_ok=True)
         return fortran_fparser.list_routine_names(path)
     return fortran_regex.list_routine_names(path)
